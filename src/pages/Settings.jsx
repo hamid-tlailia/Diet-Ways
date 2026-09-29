@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Sun, Moon, SunMoon, Bell, KeyRound, Trash2, Sparkles } from 'lucide-react';
+import { Sun, Moon, SunMoon, Bell, Trash2, Sparkles } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useT, GOALS } from '../i18n';
 import { Segmented, toast } from '../components/ui';
 import { requestPermission } from '../lib/notify';
 import { enablePush, disablePush } from '../lib/push';
-import { aiMessage, buildProfile } from '../lib/coach';
+import { generateMessage } from '../lib/coach';
 
 export default function Settings() {
   const { t, lang } = useT();
@@ -34,9 +34,9 @@ export default function Settings() {
   const testAi = async () => {
     setTesting(true);
     try {
-      const text = await aiMessage(buildProfile(useStore.getState()), lang, s.apiKey);
-      s.addMessage({ text, source: 'ai', dietId: s.dietId });
-      toast({ title: t('aiSource') + ' ✓', body: text });
+      const msg = await generateMessage(useStore.getState());
+      s.addMessage(msg);
+      toast({ title: msg.source === 'ai' ? t('aiSource') + ' ✓' : t('localSource'), body: msg.text });
     } catch (e) {
       toast({ title: '⚠️', body: String(e.message ?? e) });
     } finally {
@@ -120,18 +120,10 @@ export default function Settings() {
         <h3>
           <Sparkles size={18} /> {t('aiSettings')}
         </h3>
-        <label className="field">
-          <span>
-            <KeyRound size={14} /> {t('apiKey')}
-          </span>
-          <div className="row-gap">
-            <input type="password" dir="ltr" placeholder="sk-ant-..." value={s.apiKey} onChange={(e) => s.set({ apiKey: e.target.value.trim() })} className="grow" autoComplete="off" />
-            <button className="btn primary" disabled={!s.apiKey || testing} onClick={testAi}>
-              {testing ? '…' : t('testAi')}
-            </button>
-          </div>
-        </label>
         <p className="muted small">{t('apiKeyHint')}</p>
+        <button className="btn primary" disabled={testing} onClick={testAi}>
+          <Sparkles size={16} /> {testing ? t('generating') : t('testAi')}
+        </button>
       </section>
 
       <button

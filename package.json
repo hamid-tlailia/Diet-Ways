@@ -9,7 +9,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.129.0",
     "@upstash/redis": "^1.39.0",
     "framer-motion": "^13.4.6",
     "lucide-react": "^1.48.0",

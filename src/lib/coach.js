@@ -143,8 +143,8 @@ const SYSTEM_PROMPT =
   '(mention what they care about, their streak, fasting stage or mood when relevant). Max 25 words, at most one emoji, ' +
   'no hashtags, no quotes, no medical claims beyond general wellness. Write it in the requested language. Output only the notification text.';
 
-// Request body shared by the browser (user key) and the server (/api/coach, cron).
-export function buildAiRequest(p, lang) {
+// Prompt shared by /api/coach and the cron; the provider call lives in api/_lib.js.
+export function buildAiPrompt(p, lang) {
   const diet = dietById(p.dietId);
   const ctx = {
     language: lang === 'ar' ? 'Arabic' : 'English',
@@ -166,33 +166,7 @@ export function buildAiRequest(p, lang) {
       protocol: p.favProtocol ? PROTOCOLS.find((x) => x.id === p.favProtocol.key)?.id : null,
     },
   };
-  return {
-    model: 'claude-opus-5-5',
-    max_tokens: 16000,
-    output_config: { effort: 'low' },
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: `User context:\n${JSON.stringify(ctx, null, 2)}` }],
-  };
-}
-
-export function readAiText(response) {
-  if (response.stop_reason === 'refusal') throw new Error('refusal');
-  const text = response.content
-    .filter((b) => b.type === 'text')
-    .map((b) => b.text)
-    .join('')
-    .trim();
-  if (!text) throw new Error('empty');
-  return text;
-}
-
-// Browser path: the user pasted their own key in Settings.
-export async function aiMessage(p, lang, apiKey) {
-  const { default: Anthropic } = await import('@anthropic-ai/sdk');
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
-  return readAiText(await client.beta.messages.create(buildAiRequest(p, lang)));
+  return { system: SYSTEM_PROMPT, user: `User context:\n${JSON.stringify(ctx, null, 2)}` };
 }
 
 // Fields the server needs to personalise messages; keeps payloads small and private.
@@ -215,7 +189,7 @@ export function snapshot(s) {
   };
 }
 
-// Server path: /api/coach holds the key, so users never need one.
+// /api/coach holds the key, so users never need one.
 async function serverMessage(state) {
   const res = await fetch('/api/coach', {
     method: 'POST',
@@ -223,16 +197,15 @@ async function serverMessage(state) {
     body: JSON.stringify({ state: snapshot(state) }),
   });
   if (!res.ok) throw new Error(`coach ${res.status}`);
-  const { text } = await res.json();
+  const { text, source } = await res.json();
   if (!text) throw new Error('empty');
-  return text;
+  return { text, source };
 }
 
 export async function generateMessage(state) {
   const p = buildProfile(state);
   try {
-    const text = state.apiKey ? await aiMessage(p, state.lang, state.apiKey) : await serverMessage(state);
-    return { text, source: 'ai', dietId: p.dietId };
+    return { ...(await serverMessage(state)), dietId: p.dietId };
   } catch (e) {
     console.warn('AI generation failed, using local coach', e);
   }

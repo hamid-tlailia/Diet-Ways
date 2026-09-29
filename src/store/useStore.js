@@ -37,7 +37,6 @@ const initialState = {
   lastNotifAt: 0,
   pushId: null, // set when this device receives server push (works with the app closed)
   messages: [], // { id, text, source, at, dietId }
-  apiKey: '',
 };
 
 export const useStore = create(

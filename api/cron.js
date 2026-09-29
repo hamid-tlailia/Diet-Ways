@@ -3,7 +3,7 @@ import { buildProfile, localMessage } from '../src/lib/coach.js';
 import { zonedDate } from '../src/lib/dates.js';
 import { stageAt } from '../src/data/fasting.js';
 import { tr } from '../src/i18n/strings.js';
-import { db, claudeText, send } from './_lib.js';
+import { db, aiText, send } from './_lib.js';
 
 const QUIET = (h) => h >= 23 || h < 7; // no motivational pings at night; stage alerts still go out
 
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       const profile = buildProfile(state, ref);
       let text, source;
       try {
-        text = await claudeText(profile, lang);
+        text = await aiText(profile, lang);
         source = 'ai';
       } catch {
         text = localMessage(profile, lang);
