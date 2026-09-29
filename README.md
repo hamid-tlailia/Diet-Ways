@@ -24,11 +24,11 @@ npm run build
 | AI messages via Gemini, with the key kept on the server | `api/coach.js`, `api/_lib.js` |
 | Push subscribe / sync / inbox | `api/push.js` |
 | Stage, goal and motivation push delivery | `api/cron.js`, triggered every 10 min by `.github/workflows/notify.yml` |
-| Device subscriptions (the only server-side data) | Upstash Redis |
+| Device subscriptions (the only server-side data) | Postgres (Neon via Vercel Storage), tables `dw_*` created automatically |
 
 ## Deploy (Vercel)
 1. Import this repo in Vercel (framework: Vite).
-2. Storage → add **Upstash Redis** (free). This sets `KV_REST_API_URL` / `KV_REST_API_TOKEN`.
+2. Storage → connect a **Neon Postgres** database (free). This sets `DATABASE_URL`.
 3. Environment variables:
    - `GEMINI_API_KEY`: free key from https://aistudio.google.com/apikey (optional `GEMINI_MODEL` to pin a model; by default the newest stable Flash model is picked)
    - `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`: generate with `npx web-push generate-vapid-keys`
@@ -38,6 +38,6 @@ npm run build
    - secret `CRON_SECRET` (same value as above)
    - optional variable `APP_URL` (defaults to `https://diet-plans-latest.vercel.app`)
 
-Without Redis/VAPID the app still works: notifications then fire only while the app is open. Without `GEMINI_API_KEY` the built-in local coach writes the messages.
+Without a database/VAPID the app still works: notifications then fire only while the app is open. Without `GEMINI_API_KEY` the built-in local coach writes the messages.
 
 On iPhone, web push works only after **Share → Add to Home Screen** (iOS 16.4+).
