@@ -36,7 +36,7 @@ npm run build
    - `CRON_SECRET`: any long random string
 4. GitHub repo → Settings → Secrets and variables → Actions:
    - secret `CRON_SECRET` (same value as above)
-   - variable `APP_URL` (e.g. `https://diet-ways.vercel.app`)
+   - optional variable `APP_URL` (defaults to `https://diet-plans-latest.vercel.app`)
 
 Without Redis/VAPID the app still works: notifications then fire only while the app is open. Without `ANTHROPIC_API_KEY` the built-in local coach writes the messages.
 
