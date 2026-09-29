@@ -1,0 +1,118 @@
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+
+export const todayKey = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+const initialState = {
+  onboarded: false,
+  lang: 'ar',
+  themeMode: 'auto', // 'auto' | 'day' | 'night'
+  name: '',
+  goal: 'lose',
+  dietId: null,
+
+  // Fasting
+  protocolId: '16:8',
+  fastStart: null, // epoch ms while a fast is running
+  fastGoal: 16,
+  history: [], // { start, end, goal, protocolId }
+  stageSeen: { fastStart: null, stageId: null, goalDone: false },
+
+  // Engagement signals the coach learns from
+  interests: {
+    diets: {}, // dietId -> views
+    sections: {}, // section key -> taps
+    stages: {}, // stageId -> taps
+    protocols: {}, // protocolId -> starts
+  },
+  visits: [], // unique day keys the app was opened
+  checkins: {}, // dayKey -> { mood, water }
+
+  // Notifications
+  notifEnabled: false,
+  notifEvery: 60, // minutes
+  lastNotifAt: 0,
+  messages: [], // { id, text, source, at, dietId }
+  apiKey: '',
+};
+
+export const useStore = create(
+  persist(
+    (set, get) => ({
+      ...initialState,
+
+      set: (patch) => set(patch),
+
+      completeOnboarding: ({ name, goal, dietId }) =>
+        set({ onboarded: true, name, goal, dietId }),
+
+      chooseDiet: (dietId) => {
+        get().track('diets', dietId, 3);
+        set({ dietId });
+      },
+
+      track: (bucket, key, weight = 1) =>
+        set((s) => ({
+          interests: {
+            ...s.interests,
+            [bucket]: { ...s.interests[bucket], [key]: (s.interests[bucket]?.[key] ?? 0) + weight },
+          },
+        })),
+
+      registerVisit: () =>
+        set((s) => {
+          const k = todayKey();
+          return s.visits.includes(k) ? {} : { visits: [...s.visits, k].slice(-120) };
+        }),
+
+      startFast: () => {
+        const { protocolId, track } = get();
+        track('protocols', protocolId);
+        set({ fastStart: Date.now() });
+      },
+
+      endFast: () =>
+        set((s) => {
+          if (!s.fastStart) return {};
+          const entry = { start: s.fastStart, end: Date.now(), goal: s.fastGoal, protocolId: s.protocolId };
+          return { fastStart: null, history: [entry, ...s.history].slice(0, 100) };
+        }),
+
+      setProtocol: (protocolId, fastGoal) => set({ protocolId, fastGoal }),
+
+      checkin: (patch) =>
+        set((s) => {
+          const k = todayKey();
+          const cur = s.checkins[k] ?? { mood: null, water: 0 };
+          return { checkins: { ...s.checkins, [k]: { ...cur, ...patch } } };
+        }),
+
+      addMessage: (msg) =>
+        set((s) => ({
+          messages: [{ id: crypto.randomUUID(), at: Date.now(), ...msg }, ...s.messages].slice(0, 60),
+          lastNotifAt: Date.now(),
+        })),
+
+      reset: () => set({ ...initialState }),
+    }),
+    {
+      name: 'diet-ways-store',
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+    },
+  ),
+);
+
+// Consecutive days (ending today or yesterday) the user opened the app.
+export function computeStreak(visits) {
+  const set = new Set(visits);
+  const d = new Date();
+  if (!set.has(todayKey(d))) d.setDate(d.getDate() - 1);
+  let n = 0;
+  while (set.has(todayKey(d))) {
+    n++;
+    d.setDate(d.getDate() - 1);
+  }
+  return n;
+}

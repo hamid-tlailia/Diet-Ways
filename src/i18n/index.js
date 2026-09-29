@@ -1,0 +1,146 @@
+import { useStore } from '../store/useStore';
+
+const STRINGS = {
+  appName: { ar: 'دايت وايز', en: 'Diet Ways' },
+  navHome: { ar: 'الرئيسية', en: 'Home' },
+  navDiets: { ar: 'الأنظمة', en: 'Diets' },
+  navFasting: { ar: 'الصيام', en: 'Fasting' },
+  navCoach: { ar: 'مدربك', en: 'Coach' },
+  navSettings: { ar: 'الإعدادات', en: 'Settings' },
+
+  goodMorning: { ar: 'صباح الخير', en: 'Good morning' },
+  goodAfternoon: { ar: 'مساء النور', en: 'Good afternoon' },
+  goodEvening: { ar: 'مساء الخير', en: 'Good evening' },
+  goodNight: { ar: 'ليلة هادئة', en: 'Peaceful night' },
+  friend: { ar: 'صديقي', en: 'friend' },
+
+  dayTheme: { ar: 'طاقة الشروق', en: 'Sunrise Energy' },
+  nightTheme: { ar: 'هدوء الشفق', en: 'Aurora Calm' },
+
+  yourPlan: { ar: 'نظامك الحالي', en: 'Your current plan' },
+  choosePlan: { ar: 'اختر نظامك', en: 'Choose your plan' },
+  explore: { ar: 'استكشف', en: 'Explore' },
+  streak: { ar: 'سلسلة الأيام', en: 'Day streak' },
+  days: { ar: 'يوم', en: 'days' },
+  fastsDone: { ar: 'صيام مكتمل', en: 'Fasts completed' },
+  totalHours: { ar: 'ساعات صيام', en: 'Fasting hours' },
+  water: { ar: 'الماء اليوم', en: 'Water today' },
+  cups: { ar: 'أكواب', en: 'cups' },
+  dailyCheckin: { ar: 'كيف تشعر اليوم؟', en: 'How do you feel today?' },
+  checkedIn: { ar: 'سجّلت شعورك اليوم ✓', en: 'Checked in today ✓' },
+  insightTitle: { ar: 'مدربك يلاحظ', en: 'Your coach noticed' },
+  aiNotif: { ar: 'رسالة تحفيزية', en: 'Motivation' },
+  generate: { ar: 'ولّد رسالة جديدة', en: 'Generate a new message' },
+  generating: { ar: 'جارٍ التوليد…', en: 'Generating…' },
+
+  overview: { ar: 'نظرة عامة', en: 'Overview' },
+  benefits: { ar: 'المميزات', en: 'Benefits' },
+  method: { ar: 'الطريقة', en: 'Method' },
+  foods: { ar: 'الأكلات', en: 'Foods' },
+  allowed: { ar: 'مسموح', en: 'Allowed' },
+  forbidden: { ar: 'ممنوع', en: 'Avoid' },
+  exercises: { ar: 'التمارين', en: 'Exercises' },
+  sampleDay: { ar: 'يوم نموذجي', en: 'Sample day' },
+  cautions: { ar: 'تنبيهات', en: 'Cautions' },
+  difficulty: { ar: 'الصعوبة', en: 'Difficulty' },
+  results: { ar: 'نتائج خلال', en: 'Results in' },
+  loss: { ar: 'معدل الخسارة', en: 'Loss rate' },
+  startThis: { ar: 'ابدأ هذا النظام', en: 'Start this plan' },
+  currentPlan: { ar: 'نظامك الحالي ✓', en: 'Your plan ✓' },
+  back: { ar: 'رجوع', en: 'Back' },
+
+  fastingTitle: { ar: 'مؤقت الصيام', en: 'Fasting timer' },
+  protocol: { ar: 'نوع الصيام', en: 'Protocol' },
+  startFast: { ar: 'ابدأ الصيام', en: 'Start fast' },
+  endFast: { ar: 'أنهِ الصيام', en: 'End fast' },
+  elapsed: { ar: 'مضى', en: 'Elapsed' },
+  remaining: { ar: 'متبقٍ', en: 'Remaining' },
+  goalReached: { ar: 'حققت هدفك! 🎉', en: 'Goal reached! 🎉' },
+  notFasting: { ar: 'لست صائمًا الآن', en: 'Not fasting right now' },
+  pickProtocol: { ar: 'اختر نوع الصيام ثم اضغط ابدأ', en: 'Pick a protocol, then press start' },
+  stages: { ar: 'مراحل الصيام', en: 'Fasting stages' },
+  tapStage: { ar: 'اضغط على أي مرحلة لمعرفة ما يحدث في جسمك', en: 'Tap any stage to see what happens in your body' },
+  nextStageIn: { ar: 'المرحلة التالية بعد', en: 'Next stage in' },
+  fromHour: { ar: 'من الساعة', en: 'From hour' },
+  tip: { ar: 'نصيحة', en: 'Tip' },
+  history: { ar: 'السجل', en: 'History' },
+  noHistory: { ar: 'لا يوجد صيام مسجل بعد', en: 'No fasts logged yet' },
+  hoursShort: { ar: 'س', en: 'h' },
+  fast: { ar: 'صيام', en: 'fast' },
+  eat: { ar: 'أكل', en: 'eat' },
+  started: { ar: 'بدأ', en: 'Started' },
+  current: { ar: 'الآن', en: 'Now' },
+  reached: { ar: 'تم', en: 'Done' },
+  close: { ar: 'إغلاق', en: 'Close' },
+  confirmEnd: { ar: 'هل تريد إنهاء الصيام الآن؟', en: 'End your fast now?' },
+
+  coachTitle: { ar: 'مدربك الذكي', en: 'Your smart coach' },
+  coachSub: { ar: 'يتعلّم من اهتماماتك ليحفّزك بطريقتك', en: 'Learns from your interests to motivate you your way' },
+  yourInterests: { ar: 'ما يثير اهتمامك', en: 'What sparks your interest' },
+  noInterests: { ar: 'استكشف التطبيق وسأتعلّم ما تحب', en: 'Explore the app and I will learn what you love' },
+  messages: { ar: 'الرسائل', en: 'Messages' },
+  noMessages: { ar: 'لا رسائل بعد، ولّد أول رسالة!', en: 'No messages yet — generate your first one!' },
+  aiSource: { ar: 'ذكاء اصطناعي', en: 'AI' },
+  localSource: { ar: 'المدرب المحلي', en: 'Local coach' },
+  mood: { ar: 'المزاج', en: 'Mood' },
+  profile: { ar: 'ملفك', en: 'Profile' },
+
+  settingsTitle: { ar: 'الإعدادات', en: 'Settings' },
+  language: { ar: 'اللغة', en: 'Language' },
+  theme: { ar: 'الثيم', en: 'Theme' },
+  auto: { ar: 'تلقائي', en: 'Auto' },
+  day: { ar: 'نهار', en: 'Day' },
+  night: { ar: 'ليل', en: 'Night' },
+  autoHint: { ar: 'يتبدّل تلقائيًا حسب الوقت: نهار من 6 صباحًا إلى 6 مساءً', en: 'Switches automatically: day from 6 AM to 6 PM' },
+  notifications: { ar: 'الإشعارات', en: 'Notifications' },
+  enableNotif: { ar: 'تفعيل الإشعارات التحفيزية', en: 'Enable motivational notifications' },
+  notifEvery: { ar: 'كل', en: 'Every' },
+  minutes: { ar: 'دقيقة', en: 'minutes' },
+  notifHint: { ar: 'تصلك الإشعارات أثناء فتح التطبيق، وعند كل مرحلة صيام جديدة.', en: 'Notifications arrive while the app is open, and at every new fasting stage.' },
+  aiSettings: { ar: 'الذكاء الاصطناعي (Claude)', en: 'AI (Claude)' },
+  apiKey: { ar: 'مفتاح Anthropic API', en: 'Anthropic API key' },
+  apiKeyHint: {
+    ar: 'يُحفظ المفتاح على جهازك فقط ويُرسل مباشرة إلى Anthropic. بدونه يعمل المدرب المحلي الذكي.',
+    en: 'Your key stays on this device and is sent only to Anthropic. Without it, the built-in smart coach is used.',
+  },
+  testAi: { ar: 'جرّب', en: 'Test' },
+  name: { ar: 'اسمك', en: 'Your name' },
+  goal: { ar: 'هدفك', en: 'Your goal' },
+  resetData: { ar: 'مسح كل البيانات', en: 'Reset all data' },
+  confirmReset: { ar: 'سيتم حذف كل بياناتك. متأكد؟', en: 'All your data will be deleted. Are you sure?' },
+
+  welcome: { ar: 'مرحبًا بك في رحلتك', en: 'Welcome to your journey' },
+  welcomeSub: { ar: 'أربعة أنظمة مثبتة علميًا، ومدرب ذكي يفهمك.', en: 'Four science-backed plans and a smart coach that gets you.' },
+  whatName: { ar: 'ما اسمك؟', en: 'What should I call you?' },
+  whatGoal: { ar: 'ما هدفك الأساسي؟', en: 'What is your main goal?' },
+  pickDiet: { ar: 'اختر نظامًا للبدء (يمكنك تغييره لاحقًا)', en: 'Pick a plan to start (you can change it later)' },
+  next: { ar: 'التالي', en: 'Next' },
+  letsGo: { ar: 'لنبدأ!', en: "Let's go!" },
+  skip: { ar: 'تخطٍ', en: 'Skip' },
+};
+
+export const GOALS = [
+  { id: 'lose', ar: 'خسارة الوزن', en: 'Lose weight', emoji: '🔥' },
+  { id: 'health', ar: 'صحة أفضل', en: 'Better health', emoji: '❤️' },
+  { id: 'muscle', ar: 'جسم مشدود', en: 'Get toned', emoji: '💪' },
+  { id: 'energy', ar: 'طاقة وتركيز', en: 'Energy & focus', emoji: '⚡' },
+];
+
+export const MOODS = [
+  { id: 'great', emoji: '🤩', ar: 'رائع', en: 'Great' },
+  { id: 'good', emoji: '😊', ar: 'جيد', en: 'Good' },
+  { id: 'meh', emoji: '😐', ar: 'عادي', en: 'Okay' },
+  { id: 'tired', emoji: '😮‍💨', ar: 'متعب', en: 'Tired' },
+  { id: 'hungry', emoji: '😋', ar: 'جائع', en: 'Hungry' },
+];
+
+export function tr(lang, value) {
+  if (value == null) return '';
+  if (typeof value === 'string') return STRINGS[value]?.[lang] ?? value;
+  return value[lang] ?? value.en ?? '';
+}
+
+export function useT() {
+  const lang = useStore((s) => s.lang);
+  return { t: (v) => tr(lang, v), lang };
+}
