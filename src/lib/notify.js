@@ -18,7 +18,7 @@ export async function requestPermission() {
 // System notification when permitted; the in-app toast is handled by the caller.
 export function systemNotify(title, body) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
-  const opts = { body, icon: '/favicon.svg', badge: '/favicon.svg', tag: 'diet-ways' };
+  const opts = { body, icon: '/icon-192.png', badge: '/badge-96.png', tag: 'diet-ways' };
   if (registration?.showNotification) registration.showNotification(title, opts);
   else {
     try {

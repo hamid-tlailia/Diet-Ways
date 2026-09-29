@@ -1,6 +1,6 @@
 // Diet Ways service worker: offline app shell + push notifications.
-const CACHE = 'diet-ways-v2';
-const SHELL = ['/', '/index.html', '/favicon.svg', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
+const CACHE = 'diet-ways-v3';
+const SHELL = ['/', '/index.html', '/favicon.svg', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/badge-96.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -63,7 +63,7 @@ self.addEventListener('push', (e) => {
       await self.registration.showNotification(data.title || 'Diet Ways', {
         body: data.body,
         icon: '/icon-192.png',
-        badge: '/icon-192.png',
+        badge: '/badge-96.png',
         tag: data.kind === 'coach' ? 'coach' : `fast-${data.kind}`,
         data,
       });
