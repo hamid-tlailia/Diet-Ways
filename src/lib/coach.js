@@ -1,7 +1,7 @@
-import { DIETS, dietById } from '../data/diets';
-import { STAGES, stageAt, PROTOCOLS } from '../data/fasting';
-import { computeStreak, todayKey } from '../store/useStore';
-import { tr, GOALS, MOODS } from '../i18n';
+import { DIETS, dietById } from '../data/diets.js';
+import { STAGES, stageAt, PROTOCOLS } from '../data/fasting.js';
+import { computeStreak, todayKey } from './dates.js';
+import { tr, GOALS, MOODS } from '../i18n/strings.js';
 
 const topKey = (obj = {}) => {
   const entries = Object.entries(obj).sort((a, b) => b[1] - a[1]);
@@ -16,14 +16,17 @@ export function timeOfDay(h = new Date().getHours()) {
 }
 
 // A compact picture of the user built from everything the app has observed.
-export function buildProfile(s) {
-  const favDiet = topKey(s.interests.diets);
-  const favStage = topKey(s.interests.stages);
-  const favSection = topKey(s.interests.sections);
-  const favProtocol = topKey(s.interests.protocols);
-  const today = s.checkins[todayKey()] ?? {};
+// `ref` is a Date whose local fields are the user's wall-clock time (see zonedDate for the server).
+export function buildProfile(s, ref = new Date()) {
+  const interests = s.interests ?? {};
+  const favDiet = topKey(interests.diets);
+  const favStage = topKey(interests.stages);
+  const favSection = topKey(interests.sections);
+  const favProtocol = topKey(interests.protocols);
+  const history = s.history ?? [];
+  const today = s.checkins?.[todayKey(ref)] ?? {};
   const fastingHours = s.fastStart ? (Date.now() - s.fastStart) / 3.6e6 : null;
-  const completed = s.history.filter((h) => (h.end - h.start) / 3.6e6 >= h.goal * 0.95);
+  const completed = history.filter((h) => (h.end - h.start) / 3.6e6 >= h.goal * 0.95);
   return {
     name: s.name,
     goal: s.goal,
@@ -32,15 +35,15 @@ export function buildProfile(s) {
     favStage,
     favSection,
     favProtocol,
-    streak: computeStreak(s.visits),
+    streak: computeStreak(s.visits ?? [], ref),
     fastsDone: completed.length,
-    totalHours: Math.round(s.history.reduce((a, h) => a + (h.end - h.start) / 3.6e6, 0)),
+    totalHours: Math.round(history.reduce((a, h) => a + (h.end - h.start) / 3.6e6, 0)),
     fastingHours,
     fastGoal: s.fastGoal,
     stage: fastingHours != null ? stageAt(fastingHours) : null,
     mood: today.mood ?? null,
     water: today.water ?? 0,
-    tod: timeOfDay(),
+    tod: timeOfDay(ref.getHours()),
   };
 }
 
@@ -135,10 +138,13 @@ export function localMessage(p, lang) {
   return pick(pool);
 }
 
-// Generates one short motivational notification with Claude, tailored to the profile.
-export async function aiMessage(p, lang, apiKey) {
-  const { default: Anthropic } = await import('@anthropic-ai/sdk');
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+const SYSTEM_PROMPT =
+  'You write a single push notification for a diet & fasting app. It must feel personal, warm and specific to the user context ' +
+  '(mention what they care about, their streak, fasting stage or mood when relevant). Max 25 words, at most one emoji, ' +
+  'no hashtags, no quotes, no medical claims beyond general wellness. Write it in the requested language. Output only the notification text.';
+
+// Request body shared by the browser (user key) and the server (/api/coach, cron).
+export function buildAiRequest(p, lang) {
   const diet = dietById(p.dietId);
   const ctx = {
     language: lang === 'ar' ? 'Arabic' : 'English',
@@ -160,20 +166,18 @@ export async function aiMessage(p, lang, apiKey) {
       protocol: p.favProtocol ? PROTOCOLS.find((x) => x.id === p.favProtocol.key)?.id : null,
     },
   };
-
-  const response = await client.beta.messages.create({
+  return {
     model: 'claude-opus-5-5',
     max_tokens: 16000,
     output_config: { effort: 'low' },
     betas: ['server-side-fallback-2026-07-01'],
     fallbacks: 'default',
-    system:
-      'You write a single push notification for a diet & fasting app. It must feel personal, warm and specific to the user context ' +
-      '(mention what they care about, their streak, fasting stage or mood when relevant). Max 25 words, at most one emoji, ' +
-      'no hashtags, no quotes, no medical claims beyond general wellness. Write it in the requested language. Output only the notification text.',
+    system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: `User context:\n${JSON.stringify(ctx, null, 2)}` }],
-  });
+  };
+}
 
+export function readAiText(response) {
   if (response.stop_reason === 'refusal') throw new Error('refusal');
   const text = response.content
     .filter((b) => b.type === 'text')
@@ -184,14 +188,53 @@ export async function aiMessage(p, lang, apiKey) {
   return text;
 }
 
+// Browser path: the user pasted their own key in Settings.
+export async function aiMessage(p, lang, apiKey) {
+  const { default: Anthropic } = await import('@anthropic-ai/sdk');
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  return readAiText(await client.beta.messages.create(buildAiRequest(p, lang)));
+}
+
+// Fields the server needs to personalise messages; keeps payloads small and private.
+export function snapshot(s) {
+  return {
+    lang: s.lang,
+    name: s.name,
+    goal: s.goal,
+    dietId: s.dietId,
+    fastStart: s.fastStart,
+    fastGoal: s.fastGoal,
+    protocolId: s.protocolId,
+    history: s.history.slice(0, 30),
+    interests: s.interests,
+    visits: s.visits.slice(-40),
+    checkins: Object.fromEntries(Object.entries(s.checkins).slice(-3)),
+    notifEnabled: s.notifEnabled,
+    notifEvery: s.notifEvery,
+    tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  };
+}
+
+// Server path: /api/coach holds the key, so users never need one.
+async function serverMessage(state) {
+  const res = await fetch('/api/coach', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ state: snapshot(state) }),
+  });
+  if (!res.ok) throw new Error(`coach ${res.status}`);
+  const { text } = await res.json();
+  if (!text) throw new Error('empty');
+  return text;
+}
+
 export async function generateMessage(state) {
   const p = buildProfile(state);
-  if (state.apiKey) {
-    try {
-      return { text: await aiMessage(p, state.lang, state.apiKey), source: 'ai', dietId: p.dietId };
-    } catch (e) {
-      console.warn('AI generation failed, using local coach', e);
-    }
+  try {
+    const text = state.apiKey ? await aiMessage(p, state.lang, state.apiKey) : await serverMessage(state);
+    return { text, source: 'ai', dietId: p.dietId };
+  } catch (e) {
+    console.warn('AI generation failed, using local coach', e);
   }
   return { text: localMessage(p, state.lang), source: 'local', dietId: p.dietId };
 }

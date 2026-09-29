@@ -6,6 +6,7 @@ import { useT, tr } from './i18n';
 import { useResolvedTheme } from './lib/hooks';
 import { generateMessage } from './lib/coach';
 import { registerSW, systemNotify } from './lib/notify';
+import { syncPush, fetchInbox } from './lib/push';
 import { stageAt } from './data/fasting';
 import { ToastHost, toast } from './components/ui';
 import Home from './pages/Home';
@@ -38,18 +39,19 @@ function useCoachScheduler() {
         if (seen.stageId !== stage.id) {
           const title = `${t(stage.name)} ✨`;
           toast({ title, body: t(stage.tip) });
-          systemNotify(title, t(stage.body));
+          if (!s.pushId) systemNotify(title, t(stage.body));
         }
         let goalDone = seen.goalDone;
         if (!goalDone && hours >= s.fastGoal) {
           goalDone = true;
           toast({ title: t('goalReached'), body: `${s.fastGoal}${t('hoursShort')} ✓`, icon: '🏆' });
-          systemNotify(t('goalReached'), `${s.fastGoal}${t('hoursShort')} ✓`);
+          if (!s.pushId) systemNotify(t('goalReached'), `${s.fastGoal}${t('hoursShort')} ✓`);
         }
         useStore.setState({ stageSeen: { fastStart: s.fastStart, stageId: stage.id, goalDone } });
       }
 
-      if (!busy && s.notifEnabled && Date.now() - s.lastNotifAt >= s.notifEvery * 60_000) {
+      // With server push the cron sends motivation, so the page doesn't duplicate it.
+      if (!busy && !s.pushId && s.notifEnabled && Date.now() - s.lastNotifAt >= s.notifEvery * 60_000) {
         busy = true;
         try {
           const msg = await generateMessage(s);
@@ -64,6 +66,35 @@ function useCoachScheduler() {
     tick();
     const id = setInterval(tick, 30_000);
     return () => clearInterval(id);
+  }, []);
+}
+
+// Keeps the server's copy of this device's context fresh and pulls in pushes received while closed.
+function usePushBridge() {
+  useEffect(() => {
+    const onMessage = (e) => {
+      const p = e.data?.payload;
+      if (e.data?.type !== 'push' || !p) return;
+      if (p.kind === 'coach') useStore.getState().addMessage({ id: p.id, at: p.at, text: p.body, source: p.source ?? 'ai' });
+      toast({ title: p.title, body: p.body });
+    };
+    navigator.serviceWorker?.addEventListener('message', onMessage);
+
+    const { pushId } = useStore.getState();
+    if (pushId) fetchInbox(pushId).then((items) => items.forEach((m) => useStore.getState().addMessage(m)));
+
+    const keys = ['lang', 'name', 'goal', 'dietId', 'fastStart', 'fastGoal', 'protocolId', 'history', 'interests', 'checkins', 'notifEnabled', 'notifEvery'];
+    let timer;
+    const unsub = useStore.subscribe((s, prev) => {
+      if (!s.pushId || !keys.some((k) => s[k] !== prev[k])) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => syncPush(useStore.getState()), 3000);
+    });
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', onMessage);
+      unsub();
+      clearTimeout(timer);
+    };
   }, []);
 }
 
@@ -109,6 +140,7 @@ export default function App() {
   }, [registerVisit]);
 
   useCoachScheduler();
+  usePushBridge();
 
   const go = (id, opts = {}) => {
     setTab(id);

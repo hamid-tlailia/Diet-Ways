@@ -4,6 +4,7 @@ import { useStore } from '../store/useStore';
 import { useT, GOALS } from '../i18n';
 import { Segmented, toast } from '../components/ui';
 import { requestPermission } from '../lib/notify';
+import { enablePush, disablePush } from '../lib/push';
 import { aiMessage, buildProfile } from '../lib/coach';
 
 export default function Settings() {
@@ -11,9 +12,23 @@ export default function Settings() {
   const s = useStore();
   const [testing, setTesting] = useState(false);
 
+  const [busy, setBusy] = useState(false);
   const toggleNotif = async () => {
-    if (!s.notifEnabled) await requestPermission();
-    s.set({ notifEnabled: !s.notifEnabled, lastNotifAt: 0 });
+    setBusy(true);
+    try {
+      if (s.notifEnabled) {
+        await disablePush();
+        s.set({ notifEnabled: false, pushId: null });
+        return;
+      }
+      const perm = await requestPermission();
+      s.set({ notifEnabled: true, lastNotifAt: 0 });
+      const pushId = perm === 'granted' ? await enablePush(useStore.getState()).catch(() => null) : null;
+      s.set({ pushId });
+      if (perm === 'denied') toast({ title: '🔕', body: t('notifDenied') });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const testAi = async () => {
@@ -83,7 +98,7 @@ export default function Settings() {
         </h3>
         <label className="switch-row">
           <span>{t('enableNotif')}</span>
-          <button role="switch" aria-checked={s.notifEnabled} className={s.notifEnabled ? 'switch on' : 'switch'} onClick={toggleNotif}>
+          <button role="switch" aria-checked={s.notifEnabled} disabled={busy} className={s.notifEnabled ? 'switch on' : 'switch'} onClick={toggleNotif}>
             <span />
           </button>
         </label>
@@ -97,6 +112,7 @@ export default function Settings() {
             ))}
           </select>
         </label>
+        {s.notifEnabled && <p className={s.pushId ? 'status ok-status' : 'status'}>{s.pushId ? t('pushOn') : t('pushOff')}</p>}
         <p className="muted small">{t('notifHint')}</p>
       </section>
 

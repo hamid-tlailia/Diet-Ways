@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { todayKey } from '../lib/dates';
 
-export const todayKey = (d = new Date()) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export { todayKey, computeStreak } from '../lib/dates';
+
+
 
 const initialState = {
   onboarded: false,
@@ -33,6 +35,7 @@ const initialState = {
   notifEnabled: false,
   notifEvery: 60, // minutes
   lastNotifAt: 0,
+  pushId: null, // set when this device receives server push (works with the app closed)
   messages: [], // { id, text, source, at, dietId }
   apiKey: '',
 };
@@ -89,10 +92,11 @@ export const useStore = create(
         }),
 
       addMessage: (msg) =>
-        set((s) => ({
-          messages: [{ id: crypto.randomUUID(), at: Date.now(), ...msg }, ...s.messages].slice(0, 60),
-          lastNotifAt: Date.now(),
-        })),
+        set((s) => {
+          if (msg.id && s.messages.some((m) => m.id === msg.id)) return {};
+          const messages = [{ id: crypto.randomUUID(), at: Date.now(), ...msg }, ...s.messages].sort((a, b) => b.at - a.at);
+          return { messages: messages.slice(0, 60), lastNotifAt: Date.now() };
+        }),
 
       reset: () => set({ ...initialState }),
     }),
@@ -103,16 +107,3 @@ export const useStore = create(
     },
   ),
 );
-
-// Consecutive days (ending today or yesterday) the user opened the app.
-export function computeStreak(visits) {
-  const set = new Set(visits);
-  const d = new Date();
-  if (!set.has(todayKey(d))) d.setDate(d.getDate() - 1);
-  let n = 0;
-  while (set.has(todayKey(d))) {
-    n++;
-    d.setDate(d.getDate() - 1);
-  }
-  return n;
-}

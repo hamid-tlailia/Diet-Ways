@@ -10,11 +10,34 @@ A bilingual (Arabic / English) smart diet companion built with React + Vite.
 - **AI notifications**: with an Anthropic API key (Settings), Claude writes motivational messages tailored to your plan and context. Without a key, a local coach generates them. Messages arrive as in-app toasts and system notifications, periodically and at every new fasting stage.
 - **No backend**: all state lives in a persisted Zustand store (localStorage).
 
-## Run
+## Run locally
 ```bash
 npm install
-npm run dev      # development
-npm run build    # production build in dist/
+npm run dev      # UI only; the /api functions run on Vercel
+npm run build
 ```
 
-> Note: the API key is stored in the browser and used for direct browser → Anthropic calls. This is fine for personal use. For a public deployment, move the call behind a small server endpoint.
+## Architecture
+| Part | Where |
+|---|---|
+| UI, state (Zustand + localStorage), offline PWA | `src/`, `public/sw.js` |
+| AI messages, with the key kept on the server | `api/coach.js` |
+| Push subscribe / sync / inbox | `api/push.js` |
+| Stage, goal and motivation push delivery | `api/cron.js`, triggered every 10 min by `.github/workflows/notify.yml` |
+| Device subscriptions (the only server-side data) | Upstash Redis |
+
+## Deploy (Vercel)
+1. Import this repo in Vercel (framework: Vite).
+2. Storage → add **Upstash Redis** (free). This sets `KV_REST_API_URL` / `KV_REST_API_TOKEN`.
+3. Environment variables:
+   - `ANTHROPIC_API_KEY`: your Anthropic key
+   - `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`: generate with `npx web-push generate-vapid-keys`
+   - `VAPID_SUBJECT`: `mailto:you@example.com`
+   - `CRON_SECRET`: any long random string
+4. GitHub repo → Settings → Secrets and variables → Actions:
+   - secret `CRON_SECRET` (same value as above)
+   - variable `APP_URL` (e.g. `https://diet-ways.vercel.app`)
+
+Without Redis/VAPID the app still works: notifications then fire only while the app is open. Without `ANTHROPIC_API_KEY` the built-in local coach writes the messages.
+
+On iPhone, web push works only after **Share → Add to Home Screen** (iOS 16.4+).
