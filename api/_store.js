@@ -4,13 +4,20 @@ import postgres from 'postgres';
 let sql;
 let ready;
 
+// Accepts whatever prefix the Vercel Neon integration was given (DATABASE_URL, STORAGE_URL, POSTGRES_URL, ...).
+const dbUrl = () =>
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.STORAGE_URL ||
+  Object.entries(process.env).find(([k, v]) => k.endsWith('_URL') && /^postgres(ql)?:\/\//.test(v ?? ''))?.[1];
+
 export function hasStore() {
-  return !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
+  return !!dbUrl();
 }
 
 async function db() {
   if (!hasStore()) return null;
-  sql ??= postgres(process.env.DATABASE_URL || process.env.POSTGRES_URL, { max: 1, idle_timeout: 20, prepare: false, onnotice: () => {} });
+  sql ??= postgres(dbUrl(), { max: 1, idle_timeout: 20, prepare: false, onnotice: () => {} });
   ready ??= sql`
     create table if not exists dw_subs (
       id text primary key,
