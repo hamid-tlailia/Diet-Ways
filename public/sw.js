@@ -1,5 +1,5 @@
 // Diet Ways service worker: offline app shell + push notifications.
-const CACHE = 'diet-ways-v4';
+const CACHE = 'diet-ways-v5';
 const SHELL = ['/', '/index.html', '/favicon.svg', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/badge-96.png'];
 
 self.addEventListener('install', (e) => {
@@ -34,11 +34,12 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   // Hashed assets, fonts, icons: cache first.
+  const net = () => fetch(request).catch(() => new Promise((r) => setTimeout(r, 800)).then(() => fetch(request)));
   e.respondWith(
     caches.match(request).then(
       (hit) =>
         hit ||
-        fetch(request).then((res) => {
+        net().then((res) => {
           if (res.ok && (url.origin === location.origin || url.hostname.endsWith('gstatic.com') || url.hostname.endsWith('googleapis.com'))) {
             const copy = res.clone();
             caches.open(CACHE).then((c) => c.put(request, copy));
