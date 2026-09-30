@@ -2346,3 +2346,39 @@ html[dir='rtl'] .dock-bubble {
 .shell::after {
   display: none;
 }
+
+/* ───────────── Dock v5: SVG shape with a true notch ───────────── */
+.dock.bubble-dock {
+  filter: none;
+}
+.dock-bg {
+  display: none;
+}
+.dock-shape {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.dock-shape path {
+  fill: var(--bg-2);
+  stroke: var(--border);
+  stroke-width: 1;
+  /* shadow only falls downward from the bar, never into the notch */
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.14));
+}
+.dock-bubble,
+html[dir='rtl'] .dock-bubble {
+  top: -27px;
+  left: calc(50% - 27px);
+  right: auto;
+  width: 54px;
+  height: 54px;
+  margin: 0;
+  box-shadow: none;
+  border: 1px solid var(--border);
+}
+.dock.bubble-dock {
+  padding: 0 14px;
+}

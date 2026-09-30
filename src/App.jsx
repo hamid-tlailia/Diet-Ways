@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { House, LayoutGrid, Timer, Sparkles, Utensils, Settings as SettingsIcon, Sun, Moon, SunMoon, Languages } from 'lucide-react';
 import { useStore } from './store/useStore';
@@ -126,6 +126,61 @@ function usePushBridge() {
   }, []);
 }
 
+// Dock background drawn as an SVG path with a real see-through notch around the active tab.
+// (A path works in every mobile browser, unlike CSS masks.)
+const DOCK_H = 64;
+const DOCK_PAD = 14; // matches .bubble-dock inline padding
+const NOTCH_R = 33; // circle radius 27 + 6px gap
+const CORNER = 22;
+
+function dockPath(w, x) {
+  const R = NOTCH_R;
+  const f = 5; // soft fillet where the notch meets the top edge
+  const H = DOCK_H;
+  // Top corners shrink when the notch sits near an edge, so the notch always centres on its tab.
+  const rl = Math.max(0, Math.min(CORNER, x - R - f));
+  const rr = Math.max(0, Math.min(CORNER, w - x - R - f));
+  const r = CORNER;
+  return [
+    `M${rl},0`,
+    `H${x - R - f}`,
+    `Q${x - R},0 ${x - R + 1},${f * 0.6}`,
+    `A${R},${R} 0 0 0 ${x + R - 1},${f * 0.6}`,
+    `Q${x + R},0 ${x + R + f},0`,
+    `H${w - rr}`,
+    `A${rr},${rr} 0 0 1 ${w},${rr}`,
+    `V${H - r}`,
+    `A${r},${r} 0 0 1 ${w - r},${H}`,
+    `H${r}`,
+    `A${r},${r} 0 0 1 0,${H - r}`,
+    `V${rl}`,
+    `A${rl},${rl} 0 0 1 ${rl},0`,
+    'Z',
+  ].join(' ');
+}
+
+function DockShape({ index, count, rtl }) {
+  const ref = useRef(null);
+  const [w, setW] = useState(0);
+  useEffect(() => {
+    const el = ref.current?.parentElement;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setW(el.clientWidth));
+    ro.observe(el);
+    setW(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
+  const slot = (w - 2 * DOCK_PAD) / count;
+  const i = Math.max(0, index);
+  const cx = DOCK_PAD + (rtl ? count - 1 - i : i) * slot + slot / 2;
+  const x = Math.min(Math.max(cx, NOTCH_R + 5), w - NOTCH_R - 5);
+  return (
+    <svg ref={ref} className="dock-shape" width={w || '100%'} height={DOCK_H} viewBox={`0 0 ${w || 1} ${DOCK_H}`} aria-hidden="true">
+      {w > 0 && <motion.path initial={false} animate={{ d: dockPath(w, x) }} transition={{ type: 'spring', stiffness: 380, damping: 32 }} />}
+    </svg>
+  );
+}
+
 function ThemeLangControls({ tab, go }) {
   const { t, lang } = useT();
   const mode = useStore((s) => s.themeMode);
@@ -231,21 +286,14 @@ export default function App() {
           </main>
 
           <nav className="dock bubble-dock" aria-label="Main">
-            {/* Bar background with a real transparent notch cut where the active tab's circle sits
-                (no notch on Settings, which isn't a dock tab). */}
-            <motion.span
-              className="dock-bg"
-              initial={false}
-              animate={{ '--x': `${((Math.max(0, TABS.findIndex((x) => x.id === tab)) + 0.5) / TABS.length) * 100}%`, '--r': TABS.some((x) => x.id === tab) ? '34px' : '0px' }}
-              transition={{ type: 'spring', stiffness: 420, damping: 30 }}
-            />
+            <DockShape index={TABS.findIndex((x) => x.id === tab)} count={TABS.length} rtl={lang === 'ar'} />
             {TABS.map(({ id, icon: Icon, label }) => {
               const on = tab === id;
               return (
                 <button key={id} className={on ? 'dock-item on' : 'dock-item'} onClick={() => go(id)} aria-current={on ? 'page' : undefined} aria-label={t(label)}>
                   {/* The active tab's icon rises into a floating circle that slides between tabs. */}
                   {on && <motion.span layoutId="dock-bubble" className="dock-bubble" transition={{ type: 'spring', stiffness: 420, damping: 30 }} />}
-                  <motion.span className="dock-ico" animate={{ y: on ? -26 : 0 }} transition={{ type: 'spring', stiffness: 420, damping: 26 }}>
+                  <motion.span className="dock-ico" animate={{ y: on ? -32 : 0 }} transition={{ type: 'spring', stiffness: 420, damping: 26 }}>
                     <Icon size={22} strokeWidth={on ? 2.2 : 1.8} />
                   </motion.span>
                   <AnimatePresence>
