@@ -2396,3 +2396,9 @@ html[dir='rtl'] .dock-bubble {
 html[dir='rtl'] .dock-bubble {
   background: var(--accent);
 }
+/* Round brand mark (Arena-Diet flame-in-ring logo). */
+.brand img,
+.ob-logo {
+  border-radius: 50%;
+  box-shadow: 0 6px 20px -6px #8b7bff;
+}

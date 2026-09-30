@@ -135,9 +135,10 @@ const LIFT = 4; // circle centre sits this far above the bar's top edge
 const NOTCH_R = CIRCLE_R + 6; // notch shares the circle's centre, leaving an even 6px gap all round
 const CORNER = 22;
 
-function dockPath(w, x) {
-  const R = NOTCH_R;
-  const f = 5; // soft fillet where the notch meets the top edge
+function dockPath(w, x, open = true) {
+  // A closed notch keeps the same path commands (so it animates smoothly) but has no depth.
+  const R = open ? NOTCH_R : LIFT + 0.01;
+  const f = open ? 5 : 0; // soft fillet where the notch meets the top edge
   const H = DOCK_H;
   const dx = Math.sqrt(R * R - LIFT * LIFT); // where the notch circle crosses the top edge
   const ey = Math.sqrt(R * R - (dx - 1) ** 2) - LIFT; // arc point just inside the edge, for the fillets
@@ -180,7 +181,7 @@ function DockShape({ index, count, rtl }) {
   const x = Math.min(Math.max(cx, NOTCH_R + 5), w - NOTCH_R - 5);
   return (
     <svg ref={ref} className="dock-shape" width={w || '100%'} height={DOCK_H} viewBox={`0 0 ${w || 1} ${DOCK_H}`} aria-hidden="true">
-      {w > 0 && <motion.path initial={false} animate={{ d: dockPath(w, x) }} transition={{ type: 'spring', stiffness: 380, damping: 32 }} />}
+      {w > 0 && <motion.path initial={false} animate={{ d: dockPath(w, x, index >= 0) }} transition={{ type: 'spring', stiffness: 380, damping: 32 }} />}
     </svg>
   );
 }
@@ -193,11 +194,12 @@ function ThemeLangControls({ tab, go }) {
   const ModeIcon = { auto: SunMoon, day: Sun, night: Moon }[mode];
   return (
     <div className="top-controls">
-      <button className="chip glass" onClick={() => set({ themeMode: nextMode })} title={t('theme')}>
-        <ModeIcon size={16} /> {t(mode)}
-      </button>
       <button className="chip glass" onClick={() => set({ lang: lang === 'ar' ? 'en' : 'ar' })} title={t('language')}>
         <Languages size={16} /> {lang === 'ar' ? 'EN' : 'ع'}
+      </button>
+      {/* Theme: icon only (auto / day / night), same size as the settings gear next to it. */}
+      <button className="chip glass icon-chip" onClick={() => set({ themeMode: nextMode })} title={`${t('theme')}: ${t(mode)}`} aria-label={`${t('theme')}: ${t(mode)}`}>
+        <ModeIcon size={17} />
       </button>
       <button className={tab === 'settings' ? 'chip glass icon-chip on' : 'chip glass icon-chip'} onClick={() => go('settings')} title={t('navSettings')} aria-label={t('navSettings')}>
         <SettingsIcon size={17} />
