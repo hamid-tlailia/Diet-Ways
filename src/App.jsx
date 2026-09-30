@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { House, LayoutGrid, Timer, Sparkles, Utensils, Settings as SettingsIcon, Sun, Moon, SunMoon, Languages } from 'lucide-react';
-import { useStore } from './store/useStore';
+import { useStore, todayKey } from './store/useStore';
 import { useT, tr } from './i18n';
 import { useResolvedTheme } from './lib/hooks';
 import { generateMessage } from './lib/coach';
@@ -251,6 +251,22 @@ export default function App() {
     registerSW();
   }, [registerVisit]);
 
+  // Home-screen shortcuts (long-press the app icon) open /?do=water or /?do=fast; run the action once, then clean the URL.
+  useEffect(() => {
+    const action = new URLSearchParams(window.location.search).get('do');
+    if (!action) return;
+    window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+    const s = useStore.getState();
+    if (action === 'water') {
+      const cups = s.checkins[todayKey()]?.water ?? 0;
+      if (cups < 8) s.checkin({ water: cups + 1 });
+      toast({ title: '💧', body: `${Math.min(8, cups + 1)}/8 ${tr(s.lang, 'cups')}`, duration: 3000 });
+    } else if (action === 'fast' && s.onboarded) {
+      if (!s.fastStart) s.startFast();
+      toast({ title: '⏳', body: tr(s.lang, s.fastStart ? 'fastRunning' : 'fastStarted'), duration: 3000 });
+    }
+  }, []);
+
   useLocalNotifications();
   usePushBridge();
   useBadgeWatcher();
@@ -261,7 +277,7 @@ export default function App() {
     home: <Home go={go} theme={theme} />,
     diets: <Diets detail={dietDetail} setDetail={setDietDetail} go={go} />,
     fasting: <Fasting />,
-    meals: <Meals />,
+    meals: <Meals key={dietDetail ?? ''} initialTab={dietDetail} />,
     coach: <Coach />,
     settings: <Settings />,
   };

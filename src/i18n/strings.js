@@ -134,6 +134,8 @@ export const STRINGS = {
   fast: { ar: 'صيام', en: 'fast' },
   eat: { ar: 'أكل', en: 'eat' },
   started: { ar: 'بدأ', en: 'Started' },
+  fastStarted: { ar: 'بدأ صيامك الآن، بالتوفيق!', en: 'Your fast has started — good luck!' },
+  fastRunning: { ar: 'صيامك جارٍ بالفعل', en: 'Your fast is already running' },
   endsAt: { ar: 'ينتهي الصيام', en: 'Fast ends' },
   dockStyle: { ar: 'شكل الشريط السفلي', en: 'Bottom bar style' },
   dockNotch: { ar: 'الدائرة العائمة', en: 'Floating circle' },

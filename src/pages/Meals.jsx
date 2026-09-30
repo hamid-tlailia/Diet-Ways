@@ -567,10 +567,13 @@ function History() {
   );
 }
 
-export default function Meals() {
+const MEAL_TABS = ['today', 'scan', 'shop', 'history'];
+
+// `initialTab` comes from the URL (#meals/scan), e.g. the "scan a meal" home-screen shortcut.
+export default function Meals({ initialTab }) {
   const { t } = useT();
   const profile = useStore((s) => s.mealProfile);
-  const [tab, setTab] = useState('today');
+  const [tab, setTab] = useState(MEAL_TABS.includes(initialTab) ? initialTab : 'today');
   return (
     <div className="meals">
       <div className="page-head">

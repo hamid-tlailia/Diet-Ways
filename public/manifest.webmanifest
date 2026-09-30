@@ -36,5 +36,59 @@
       "purpose": "maskable"
     }
   ],
-  "id": "/"
+  "id": "/",
+  "shortcuts": [
+    {
+      "name": "ابدأ الصيام",
+      "short_name": "ابدأ الصيام",
+      "description": "ابدأ مؤقت الصيام الآن",
+      "url": "/?do=fast#fasting",
+      "icons": [
+        {
+          "src": "/shortcut-fast.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "صوّر وجبة",
+      "short_name": "صوّر وجبة",
+      "description": "حلّل سعرات طبقك بالكاميرا",
+      "url": "/#meals/scan",
+      "icons": [
+        {
+          "src": "/shortcut-scan.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "أضف كوب ماء",
+      "short_name": "كوب ماء",
+      "description": "سجّل كوب ماء واحد",
+      "url": "/?do=water#home",
+      "icons": [
+        {
+          "src": "/shortcut-water.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "وجباتي اليوم",
+      "short_name": "وجباتي",
+      "description": "خطة وجبات اليوم",
+      "url": "/#meals",
+      "icons": [
+        {
+          "src": "/shortcut-meals.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
 }
