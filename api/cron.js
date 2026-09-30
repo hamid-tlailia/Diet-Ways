@@ -4,7 +4,7 @@ import { zonedDate } from '../src/lib/dates.js';
 import { planNotifications } from '../src/lib/rules.js';
 import { MEAL_TYPES } from '../src/lib/meals.js';
 import { aiText, makeMealPlan, send } from './_lib.js';
-import { hasStore, listSubs, saveMeta, addInbox, deleteSub } from './_store.js';
+import { hasStore, listSubs, saveMeta, addInbox, markDead } from './_store.js';
 
 // Called every ~10 minutes (GitHub Actions). Applies the shared notification rules per device.
 export default async function handler(req, res) {
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
         if (inbox) await addInbox(id, inbox);
       } catch (e) {
         if (e.statusCode === 404 || e.statusCode === 410) {
-          await deleteSub(id);
+          await markDead(id);
           stats.removed++;
           gone = true;
           break;

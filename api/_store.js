@@ -34,6 +34,10 @@ async function db() {
       msg jsonb not null
     );
     create index if not exists dw_inbox_sub on dw_inbox (sub_id);
+    create table if not exists dw_dead (
+      id text primary key,
+      at timestamptz not null default now()
+    );
     create table if not exists dw_rate (
       key text primary key,
       n int not null,
@@ -60,6 +64,19 @@ export async function deleteSub(id) {
   const s = await db();
   await s`delete from dw_inbox where sub_id = ${id}`;
   await s`delete from dw_subs where id = ${id}`;
+}
+
+// Push services answer 404/410 for subscriptions that no longer exist. We remember those ids so a
+// device that re-sends a dead subscription is told to create a fresh one instead.
+export async function markDead(id) {
+  const s = await db();
+  await s`insert into dw_dead (id) values (${id}) on conflict (id) do update set at = now()`;
+  await deleteSub(id);
+}
+
+export async function isDead(id) {
+  const s = await db();
+  return (await s`select 1 from dw_dead where id = ${id}`).length > 0;
 }
 
 export async function listSubs() {

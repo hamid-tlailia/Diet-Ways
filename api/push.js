@@ -1,5 +1,5 @@
 import { readJson, send, subId, allow, clientIp } from './_lib.js';
-import { hasStore, saveSub, deleteSub, takeInbox } from './_store.js';
+import { hasStore, saveSub, deleteSub, takeInbox, isDead } from './_store.js';
 
 // GET ?key       -> VAPID public key
 // GET ?inbox=ID  -> messages delivered while the app was closed (then cleared)
@@ -24,6 +24,7 @@ export default async function handler(req, res) {
       const { subscription, state } = await readJson(req);
       if (!subscription?.endpoint || !state) return send(res, 400, { error: 'missing subscription/state' });
       const id = await subId(subscription.endpoint);
+      if (await isDead(id)) return send(res, 409, { error: 'subscription expired', dead: true });
       await saveSub(id, subscription, state);
       return send(res, 200, { id });
     }

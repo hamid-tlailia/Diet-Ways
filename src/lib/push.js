@@ -8,20 +8,41 @@ const b64ToBytes = (b64) => {
 
 export const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
-// Subscribes this device to server push. Returns the device id, or null if the server can't do push.
-export async function enablePush(state) {
-  if (!pushSupported()) return null;
-  const info = await fetch('/api/push?key').then((r) => (r.ok ? r.json() : null)).catch(() => null);
-  if (!info?.publicKey || !info.storage) return null;
-  const reg = await navigator.serviceWorker.ready;
-  const subscription =
-    (await reg.pushManager.getSubscription()) ??
-    (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(info.publicKey) }));
-  const res = await fetch('/api/push', {
+const sameKey = (a, b) => {
+  if (!a || !b) return false;
+  const x = new Uint8Array(a);
+  return x.length === b.length && x.every((v, i) => v === b[i]);
+};
+
+const postSub = (subscription, state) =>
+  fetch('/api/push', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ subscription, state: snapshot(state) }),
   });
+
+// Subscribes this device to server push. Returns the device id, or null if the server can't do push.
+// Replaces the browser's subscription when it was made with an old key or the push service expired it.
+export async function enablePush(state) {
+  if (!pushSupported()) return null;
+  const info = await fetch('/api/push?key').then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  if (!info?.publicKey || !info.storage) return null;
+  const key = b64ToBytes(info.publicKey);
+  const reg = await navigator.serviceWorker.ready;
+  const fresh = () => reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+
+  let subscription = await reg.pushManager.getSubscription();
+  if (subscription && !sameKey(subscription.options?.applicationServerKey, key)) {
+    await subscription.unsubscribe();
+    subscription = null;
+  }
+  subscription ??= await fresh();
+  let res = await postSub(subscription, state);
+  if (res.status === 409) {
+    await subscription.unsubscribe();
+    subscription = await fresh();
+    res = await postSub(subscription, state);
+  }
   if (!res.ok) return null;
   return (await res.json()).id;
 }
