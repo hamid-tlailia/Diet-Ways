@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { House, LayoutGrid, Timer, Sparkles, Settings as SettingsIcon, Sun, Moon, SunMoon, Languages } from 'lucide-react';
+import { House, LayoutGrid, Timer, Sparkles, Utensils, Settings as SettingsIcon, Sun, Moon, SunMoon, Languages } from 'lucide-react';
 import { useStore } from './store/useStore';
 import { useT, tr } from './i18n';
 import { useResolvedTheme } from './lib/hooks';
 import { generateMessage } from './lib/coach';
 import { registerSW, systemNotify } from './lib/notify';
 import { syncPush, fetchInbox } from './lib/push';
-import { stageAt } from './data/fasting';
+import { planNotifications } from './lib/rules';
+import { ensureTodayPlan } from './lib/mealsApi';
 import { ToastHost, toast } from './components/ui';
 import Home from './pages/Home';
 import Diets from './pages/Diets';
 import Fasting from './pages/Fasting';
 import Coach from './pages/Coach';
+import Meals from './pages/Meals';
 import Settings from './pages/Settings';
 import Onboarding from './pages/Onboarding';
 
@@ -20,51 +22,47 @@ const TABS = [
   { id: 'home', icon: House, label: 'navHome' },
   { id: 'diets', icon: LayoutGrid, label: 'navDiets' },
   { id: 'fasting', icon: Timer, label: 'navFasting' },
+  { id: 'meals', icon: Utensils, label: 'navMeals' },
   { id: 'coach', icon: Sparkles, label: 'navCoach' },
   { id: 'settings', icon: SettingsIcon, label: 'navSettings' },
 ];
 
-// Background loop: periodic AI/local motivation + a notification at every new fasting stage.
-function useCoachScheduler() {
+// In-app notifications when this device has no server push: same rules as the cron (lib/rules.js).
+function useLocalNotifications() {
   useEffect(() => {
     let busy = false;
     const tick = async () => {
       const s = useStore.getState();
+      if (busy || s.pushId || !s.onboarded) return;
       const t = (v) => tr(s.lang, v);
-
-      if (s.fastStart) {
-        const hours = (Date.now() - s.fastStart) / 3.6e6;
-        const stage = stageAt(hours);
-        const seen = s.stageSeen.fastStart === s.fastStart ? s.stageSeen : { fastStart: s.fastStart, stageId: stage.id, goalDone: false };
-        if (seen.stageId !== stage.id) {
-          const title = `${t(stage.name)} ✨`;
-          toast({ title, body: t(stage.tip) });
-          if (!s.pushId) systemNotify(title, t(stage.body));
+      const { items, meta } = planNotifications(s, s.notifMeta);
+      useStore.setState({ notifMeta: meta });
+      busy = true;
+      try {
+        for (const item of items) {
+          let body = item.body;
+          if (item.ai === 'meals') {
+            await ensureTodayPlan(useStore.getState, useStore.getState().setMealPlan)?.catch(() => null);
+            const plan = useStore.getState().mealPlans[meta.day];
+            if (!plan) continue;
+            body = plan.meals.map((m) => m.name).join(' · ');
+          } else if (item.ai === 'coach') {
+            if (!s.notifEnabled) continue;
+            const msg = await generateMessage(useStore.getState());
+            useStore.getState().addMessage({ ...msg, kind: 'coach' });
+            body = msg.text;
+          } else if (item.kind === 'insight') {
+            useStore.getState().addMessage({ text: body, source: 'local', kind: 'insight' });
+          }
+          toast({ title: item.title, body });
+          if (s.notifEnabled) systemNotify(item.title, body);
         }
-        let goalDone = seen.goalDone;
-        if (!goalDone && hours >= s.fastGoal) {
-          goalDone = true;
-          toast({ title: t('goalReached'), body: `${s.fastGoal}${t('hoursShort')} ✓`, icon: '🏆' });
-          if (!s.pushId) systemNotify(t('goalReached'), `${s.fastGoal}${t('hoursShort')} ✓`);
-        }
-        useStore.setState({ stageSeen: { fastStart: s.fastStart, stageId: stage.id, goalDone } });
-      }
-
-      // With server push the cron sends motivation, so the page doesn't duplicate it.
-      if (!busy && !s.pushId && s.notifEnabled && Date.now() - s.lastNotifAt >= s.notifEvery * 60_000) {
-        busy = true;
-        try {
-          const msg = await generateMessage(s);
-          useStore.getState().addMessage(msg);
-          toast({ title: t('aiNotif'), body: msg.text });
-          systemNotify(t('appName'), msg.text);
-        } finally {
-          busy = false;
-        }
+      } finally {
+        busy = false;
       }
     };
     tick();
-    const id = setInterval(tick, 30_000);
+    const id = setInterval(tick, 60_000);
     return () => clearInterval(id);
   }, []);
 }
@@ -72,23 +70,32 @@ function useCoachScheduler() {
 // Keeps the server's copy of this device's context fresh and pulls in pushes received while closed.
 function usePushBridge() {
   useEffect(() => {
+    const store = useStore.getState;
+    const absorb = (m) => {
+      if (m.kind === 'meals') {
+        if (m.plan && !store().mealPlans[m.plan.date]) store().setMealPlan(m.plan);
+      } else store().addMessage(m);
+    };
+    const pullInbox = () => {
+      const { pushId } = store();
+      if (pushId) fetchInbox(pushId).then((items) => items.forEach(absorb));
+    };
     const onMessage = (e) => {
       const p = e.data?.payload;
       if (e.data?.type !== 'push' || !p) return;
-      if (p.kind === 'coach') useStore.getState().addMessage({ id: p.id, at: p.at, text: p.body, source: p.source ?? 'ai' });
+      if (p.kind === 'coach' || p.kind === 'insight' || p.kind === 'meals') pullInbox();
       toast({ title: p.title, body: p.body });
     };
     navigator.serviceWorker?.addEventListener('message', onMessage);
+    pullInbox();
+    ensureTodayPlan(store, store().setMealPlan)?.catch(() => null);
 
-    const { pushId } = useStore.getState();
-    if (pushId) fetchInbox(pushId).then((items) => items.forEach((m) => useStore.getState().addMessage(m)));
-
-    const keys = ['lang', 'name', 'goal', 'dietId', 'fastStart', 'fastGoal', 'protocolId', 'history', 'interests', 'checkins', 'notifEnabled', 'notifEvery'];
+    const keys = ['lang', 'name', 'goal', 'dietId', 'fastStart', 'fastGoal', 'protocolId', 'history', 'interests', 'checkins', 'notifEnabled', 'mealProfile', 'mealPlans'];
     let timer;
     const unsub = useStore.subscribe((s, prev) => {
       if (!s.pushId || !keys.some((k) => s[k] !== prev[k])) return;
       clearTimeout(timer);
-      timer = setTimeout(() => syncPush(useStore.getState()), 3000);
+      timer = setTimeout(() => syncPush(store()), 3000);
     });
     return () => {
       navigator.serviceWorker?.removeEventListener('message', onMessage);
@@ -139,7 +146,7 @@ export default function App() {
     registerSW();
   }, [registerVisit]);
 
-  useCoachScheduler();
+  useLocalNotifications();
   usePushBridge();
 
   const go = (id, opts = {}) => {
@@ -152,6 +159,7 @@ export default function App() {
     home: <Home go={go} theme={theme} />,
     diets: <Diets detail={dietDetail} setDetail={setDietDetail} go={go} />,
     fasting: <Fasting />,
+    meals: <Meals />,
     coach: <Coach />,
     settings: <Settings />,
   };

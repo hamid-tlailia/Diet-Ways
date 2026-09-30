@@ -1,4 +1,6 @@
 import { buildAiPrompt } from '../src/lib/coach.js';
+import { mealPlanPrompt, normalizePlan } from '../src/lib/meals.js';
+import { todayKey, zonedDate } from '../src/lib/dates.js';
 
 export { allow } from './_store.js';
 
@@ -33,15 +35,17 @@ async function modelList(key) {
   return candidates;
 }
 
-async function generate(key, model, system, user) {
+async function generate(key, model, { system, user, image, json }) {
+  const parts = [{ text: user }];
+  if (image) parts.push({ inlineData: { mimeType: image.mime, data: image.data } });
   const res = await fetch(`${GEMINI}/models/${model}:generateContent`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.timeout(json ? 45_000 : 15_000),
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: system }] },
-      contents: [{ role: 'user', parts: [{ text: user }] }],
-      generationConfig: { temperature: 0.95, maxOutputTokens: 2048 },
+      contents: [{ role: 'user', parts }],
+      generationConfig: { temperature: json ? 0.8 : 0.95, maxOutputTokens: json ? 8192 : 2048, ...(json && { responseMimeType: 'application/json' }) },
     }),
   });
   if (!res.ok) throw Object.assign(new Error(`gemini ${model} ${res.status}: ${(await res.text()).slice(0, 160)}`), { status: res.status });
@@ -50,29 +54,47 @@ async function generate(key, model, system, user) {
     .filter((p) => !p.thought)
     .map((p) => p.text ?? '')
     .join('')
-    .trim()
-    .replace(/^["“«]|["”»]$/g, '');
+    .trim();
   if (!text) throw new Error(`gemini ${model} empty (${data.candidates?.[0]?.finishReason ?? 'no candidate'})`);
-  return text;
+  if (!json) return text.replace(/^["“«]|["”»]$/g, '');
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error(`gemini ${model} returned no JSON`);
+  return JSON.parse(match[0]);
 }
 
-// Free AI text via Google Gemini. Tries the next model when one is busy (503/429) or retired (404);
-// throws when nothing works so callers fall back to the local coach.
-export async function aiText(profile, lang) {
+// Calls Gemini, moving to the next model when one is busy (503/429), retired (404) or returns bad output.
+// Throws when nothing works so callers can fall back.
+async function callGemini(request) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('GEMINI_API_KEY is not set');
-  const { system, user } = buildAiPrompt(profile, lang);
   let lastErr;
   for (const model of await modelList(key)) {
     try {
-      return await generate(key, model, system, user);
+      return await generate(key, model, request);
     } catch (e) {
       lastErr = e;
       console.error('ai attempt failed', e.message);
-      if (e.status === 400 || e.status === 401 || e.status === 403) break; // bad key: other models won't help
+      if (e.status === 400 || e.status === 401 || e.status === 403) break; // bad key/request: other models won't help
     }
   }
   throw lastErr ?? new Error('no gemini model available');
+}
+
+// Free AI text via Google Gemini (motivational notifications).
+export async function aiText(profile, lang) {
+  return callGemini(buildAiPrompt(profile, lang));
+}
+
+// Structured output (meal plans, meal scans); `image` is { mime, data: base64 }.
+export async function aiJson(prompt, image) {
+  return callGemini({ ...prompt, image, json: true });
+}
+
+// Today's plan in the user's time zone; used by /api/meals and the morning cron.
+export async function makeMealPlan(state) {
+  const lang = state.lang === 'en' ? 'en' : 'ar';
+  const day = todayKey(zonedDate(state.tz));
+  return normalizePlan(await aiJson(mealPlanPrompt(state, lang, day, state.recentMeals ?? [])), day);
 }
 
 export async function readJson(req, limit = 64_000) {

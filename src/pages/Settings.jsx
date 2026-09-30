@@ -1,17 +1,14 @@
 import { useState } from 'react';
-import { Sun, Moon, SunMoon, Bell, Trash2, Sparkles } from 'lucide-react';
+import { Sun, Moon, SunMoon, Bell, Trash2, Sparkles, Utensils } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useT, GOALS } from '../i18n';
 import { Segmented, toast } from '../components/ui';
 import { requestPermission } from '../lib/notify';
 import { enablePush, disablePush } from '../lib/push';
-import { generateMessage } from '../lib/coach';
 
 export default function Settings() {
   const { t, lang } = useT();
   const s = useStore();
-  const [testing, setTesting] = useState(false);
-
   const [busy, setBusy] = useState(false);
   const toggleNotif = async () => {
     setBusy(true);
@@ -22,25 +19,12 @@ export default function Settings() {
         return;
       }
       const perm = await requestPermission();
-      s.set({ notifEnabled: true, lastNotifAt: 0 });
+      s.set({ notifEnabled: true });
       const pushId = perm === 'granted' ? await enablePush(useStore.getState()).catch(() => null) : null;
       s.set({ pushId });
       if (perm === 'denied') toast({ title: '🔕', body: t('notifDenied') });
     } finally {
       setBusy(false);
-    }
-  };
-
-  const testAi = async () => {
-    setTesting(true);
-    try {
-      const msg = await generateMessage(useStore.getState());
-      s.addMessage(msg);
-      toast({ title: msg.source === 'ai' ? t('aiSource') + ' ✓' : t('localSource'), body: msg.text });
-    } catch (e) {
-      toast({ title: '⚠️', body: String(e.message ?? e) });
-    } finally {
-      setTesting(false);
     }
   };
 
@@ -89,7 +73,7 @@ export default function Settings() {
             { value: 'night', label: t('night'), icon: <Moon size={15} /> },
           ]}
         />
-        <p className="muted small">{t('autoHint')}</p>
+        <p className="muted small hint-below">{t('autoHint')}</p>
       </section>
 
       <section className="card">
@@ -102,16 +86,6 @@ export default function Settings() {
             <span />
           </button>
         </label>
-        <label className="field inline">
-          <span>{t('notifEvery')}</span>
-          <select value={s.notifEvery} onChange={(e) => s.set({ notifEvery: Number(e.target.value) })}>
-            {[15, 30, 60, 120, 240].map((m) => (
-              <option key={m} value={m}>
-                {m} {t('minutes')}
-              </option>
-            ))}
-          </select>
-        </label>
         {s.notifEnabled && <p className={s.pushId ? 'status ok-status' : 'status'}>{s.pushId ? t('pushOn') : t('pushOff')}</p>}
         <p className="muted small">{t('notifHint')}</p>
       </section>
@@ -121,9 +95,11 @@ export default function Settings() {
           <Sparkles size={18} /> {t('aiSettings')}
         </h3>
         <p className="muted small">{t('apiKeyHint')}</p>
-        <button className="btn primary" disabled={testing} onClick={testAi}>
-          <Sparkles size={16} /> {testing ? t('generating') : t('testAi')}
-        </button>
+        {s.mealProfile?.done && (
+          <button className="btn ghost" onClick={() => s.set({ mealProfile: { ...s.mealProfile, done: false } })}>
+            <Utensils size={16} /> {t('editMealProfile')}
+          </button>
+        )}
       </section>
 
       <button

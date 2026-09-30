@@ -27,6 +27,7 @@ async function db() {
       stage_seen jsonb,
       updated_at timestamptz not null default now()
     );
+    alter table dw_subs add column if not exists meta jsonb not null default '{}';
     create table if not exists dw_inbox (
       seq bigserial primary key,
       sub_id text not null,
@@ -63,12 +64,13 @@ export async function deleteSub(id) {
 
 export async function listSubs() {
   const s = await db();
-  return s`select id, subscription, state, last_notif_at, stage_seen from dw_subs`;
+  return s`select id, subscription, state, meta from dw_subs`;
 }
 
-export async function saveMeta(id, lastNotifAt, stageSeen) {
+// Delivery bookkeeping (what was sent today, fasting milestones); owned by the cron.
+export async function saveMeta(id, meta) {
   const s = await db();
-  await s`update dw_subs set last_notif_at = ${lastNotifAt}, stage_seen = ${stageSeen ? s.json(stageSeen) : null} where id = ${id}`;
+  await s`update dw_subs set meta = ${s.json(meta)} where id = ${id}`;
 }
 
 export async function addInbox(id, msg) {

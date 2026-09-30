@@ -1,11 +1,11 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { RefreshCw, Bot, Sparkles } from 'lucide-react';
+import { Bot, Sparkles } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useT, GOALS } from '../i18n';
 import { dietById, DIETS } from '../data/diets';
 import { STAGES } from '../data/fasting';
-import { buildProfile, buildInsights, generateMessage } from '../lib/coach';
+import { buildProfile, buildInsights } from '../lib/coach';
+import MessageList from '../components/MessageList';
 import { stagger } from '../components/ui';
 
 const SECTION_LABEL = { overview: 'overview', method: 'method', foods: 'foods', exercises: 'exercises' };
@@ -13,7 +13,6 @@ const SECTION_LABEL = { overview: 'overview', method: 'method', foods: 'foods', 
 export default function Coach() {
   const { t, lang } = useT();
   const state = useStore();
-  const [loading, setLoading] = useState(false);
   const profile = buildProfile(state);
   const insights = buildInsights(profile, lang);
 
@@ -30,16 +29,7 @@ export default function Coach() {
     .slice(0, 6);
   const max = Math.max(1, ...bars.map((b) => b.v));
 
-  const generate = async () => {
-    setLoading(true);
-    try {
-      state.addMessage(await generateMessage(useStore.getState()));
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const fmt = (ms) => new Date(ms).toLocaleString(lang === 'ar' ? 'ar' : 'en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   const goal = GOALS.find((g) => g.id === state.goal);
   const diet = DIETS.find((d) => d.id === profile.dietId);
 
@@ -99,27 +89,8 @@ export default function Coach() {
       </motion.section>
 
       <motion.section {...stagger(3)} className="card">
-        <div className="row-between">
-          <h3>{t('messages')}</h3>
-          <button className="btn primary" onClick={generate} disabled={loading}>
-            <RefreshCw size={16} className={loading ? 'spin' : ''} /> {loading ? t('generating') : t('generate')}
-          </button>
-        </div>
-        {state.messages.length === 0 ? (
-          <p className="muted">{t('noMessages')}</p>
-        ) : (
-          <div className="feed">
-            {state.messages.slice(0, 20).map((m) => (
-              <motion.div key={m.id} layout initial={{ opacity: 0, x: lang === 'ar' ? 20 : -20 }} animate={{ opacity: 1, x: 0 }} className="message-bubble">
-                <div className="row-between">
-                  <span className={`src-tag ${m.source}`}>{m.source === 'ai' ? t('aiSource') : t('localSource')}</span>
-                  <small className="muted">{fmt(m.at)}</small>
-                </div>
-                <p>{m.text}</p>
-              </motion.div>
-            ))}
-          </div>
-        )}
+        <h3>{t('messages')}</h3>
+        <MessageList messages={state.messages} />
       </motion.section>
     </div>
   );

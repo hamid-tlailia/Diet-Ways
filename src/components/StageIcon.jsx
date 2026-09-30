@@ -14,6 +14,55 @@ const paths = {
       <path d="M24 21v10M20 27l4 4 4-4" stroke={c} />
     </>
   ),
+  insulin: (c) => (
+    <>
+      <circle cx="17" cy="24" r="8" fill={c} fillOpacity=".18" />
+      <circle cx="17" cy="24" r="8" />
+      <circle cx="17" cy="24" r="2.5" fill={c} stroke="none" />
+      <path className="stage-anim-pulse" d="M25 24h16M35 24v6M40 24v4" stroke={c} />
+    </>
+  ),
+  ghrelin: (c) => (
+    <>
+      <path d="M8 30c4-6 8-6 12 0s8 6 12 0 8-6 8-6" fill="none" />
+      <path className="stage-anim-flicker" d="M8 21c4-6 8-6 12 0s8 6 12 0 8-6 8-6" stroke={c} />
+      <path d="M8 39c4-4 8-4 12 0s8 4 12 0" strokeOpacity=".5" />
+      <circle cx="36" cy="11" r="3" fill={c} stroke="none" />
+    </>
+  ),
+  gluconeo: (c) => (
+    <>
+      <circle cx="13" cy="24" r="5" fill={c} fillOpacity=".25" />
+      <circle cx="13" cy="24" r="5" />
+      <path d="M20 24h8M25 20l4 4-4 4" stroke={c} />
+      <path d="M37 14c-3.5 4.5-5.5 7.5-5.5 10.5a5.5 5.5 0 0 0 11 0c0-3-2-6-5.5-10.5z" fill={c} fillOpacity=".3" />
+      <path className="stage-anim-pulse" d="M37 14c-3.5 4.5-5.5 7.5-5.5 10.5a5.5 5.5 0 0 0 11 0c0-3-2-6-5.5-10.5z" />
+    </>
+  ),
+  hgh: (c) => (
+    <>
+      <path d="M9 39h30" />
+      <rect x="11" y="28" width="6" height="11" rx="1.5" fill={c} fillOpacity=".25" />
+      <rect x="21" y="21" width="6" height="18" rx="1.5" fill={c} fillOpacity=".45" />
+      <rect x="31" y="13" width="6" height="26" rx="1.5" fill={c} fillOpacity=".7" />
+      <path className="stage-anim-pulse" d="M10 22l10-8 7 5 11-10M32 9h6v6" stroke={c} />
+    </>
+  ),
+  clarity: (c) => (
+    <>
+      <path d="M24 7a12 12 0 0 0-7 21.8V33h14v-4.2A12 12 0 0 0 24 7z" fill={c} fillOpacity=".15" />
+      <path d="M24 7a12 12 0 0 0-7 21.8V33h14v-4.2A12 12 0 0 0 24 7z" />
+      <path d="M19 38h10M21 42h6" />
+      <path className="stage-anim-pulse" d="M24 14v6M20.5 17.5l3.5 3.5 3.5-3.5" stroke={c} />
+    </>
+  ),
+  sensitivity: (c) => (
+    <>
+      <path d="M24 40S9 31 9 20a8 8 0 0 1 15-4 8 8 0 0 1 15 4c0 11-15 20-15 20z" fill={c} fillOpacity=".14" />
+      <path d="M24 40S9 31 9 20a8 8 0 0 1 15-4 8 8 0 0 1 15 4c0 11-15 20-15 20z" />
+      <path className="stage-anim-pulse" d="M13 24h6l2.5-5 4 10 2.5-5h7" stroke={c} />
+    </>
+  ),
   glycogen: (c) => (
     <>
       <rect x="9" y="15" width="27" height="18" rx="4" />

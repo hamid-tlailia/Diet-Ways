@@ -23,6 +23,18 @@ export const STAGES = [
     tip: { ar: 'اشرب كوب ماء وابدأ يومك بهدوء.', en: 'Drink a glass of water and settle in.' },
   },
   {
+    id: 'insulin',
+    from: 2,
+    color: '#fb923c',
+    name: { ar: 'عمل الإنسولين', en: 'Insulin at work' },
+    short: { ar: 'تخزين الطاقة', en: 'Storing energy' },
+    body: {
+      ar: 'يبلغ الإنسولين ذروته ويعمل كـ«مفتاح» يُدخل الجلوكوز إلى الخلايا ويخزّن الفائض في الكبد والعضلات وكدهون. في هذه المرحلة يكون حرق الدهون متوقفًا تقريبًا.',
+      en: 'Insulin peaks and acts as a "key" that moves glucose into cells, storing the surplus in the liver, muscles and fat. Fat burning is almost paused at this point.',
+    },
+    tip: { ar: 'تمشَّ 10 دقائق بعد الأكل لتحسين استخدام السكر.', en: 'A 10-minute walk after eating improves how you use the sugar.' },
+  },
+  {
     id: 'falling',
     from: 4,
     color: '#eab308',
@@ -33,6 +45,18 @@ export const STAGES = [
       en: 'Digestion is mostly done and insulin drops. The body starts relying on stored glycogen. Mild hunger may appear — it is temporary and comes in waves.',
     },
     tip: { ar: 'الشاي الأخضر يساعد على تجاوز موجة الجوع.', en: 'Green tea helps you ride out the hunger wave.' },
+  },
+  {
+    id: 'ghrelin',
+    from: 6,
+    color: '#facc15',
+    name: { ar: 'موجة الجوع', en: 'Hunger wave' },
+    short: { ar: 'هرمون الغريلين', en: 'Ghrelin' },
+    body: {
+      ar: 'يرتفع هرمون الجوع (الغريلين) في مواعيد وجباتك المعتادة، لا لأن جسمك يحتاج طعامًا فعلًا. الموجة تبلغ ذروتها ثم تختفي خلال 20–30 دقيقة، ومع الأيام يتعوّد الجسم على المواعيد الجديدة.',
+      en: 'The hunger hormone ghrelin rises at your usual meal times, not because your body truly needs food. The wave peaks and fades within 20–30 minutes, and your body adapts to new times within days.',
+    },
+    tip: { ar: 'كوب ماء فوّار أو شاي يُسكت الموجة بسرعة.', en: 'Sparkling water or tea quiets the wave fast.' },
   },
   {
     id: 'glycogen',
@@ -47,6 +71,18 @@ export const STAGES = [
     tip: { ar: 'نزهة خفيفة الآن تسرّع التحوّل لحرق الدهون.', en: 'A light walk now speeds up the switch to fat burning.' },
   },
   {
+    id: 'gluconeo',
+    from: 10,
+    color: '#a3e635',
+    name: { ar: 'تصنيع الجلوكوز', en: 'Gluconeogenesis' },
+    short: { ar: 'بدء تحرير الدهون', en: 'Fat release begins' },
+    body: {
+      ar: 'يبدأ الكبد بتصنيع الجلوكوز من مصادر غير الكربوهيدرات مثل الجلسرين الناتج عن تفكيك الدهون. تنطلق الأحماض الدهنية من المخازن إلى الدم استعدادًا لحرقها.',
+      en: 'The liver starts making glucose from non-carb sources such as glycerol from broken-down fat. Fatty acids are released from storage into the blood, ready to be burned.',
+    },
+    tip: { ar: 'تجنّب أي سعرات الآن — أنت على عتبة حرق الدهون.', en: 'Avoid any calories now — you are on the threshold of fat burning.' },
+  },
+  {
     id: 'ketosis',
     from: 12,
     color: '#f97316',
@@ -57,6 +93,18 @@ export const STAGES = [
       en: 'You are now in the fat-burning zone! The liver breaks fat down into ketones that fuel your brain and muscles. Focus sharpens and energy stabilises.',
     },
     tip: { ar: 'هذا أفضل وقت للعمل الذهني العميق.', en: 'This is prime time for deep focused work.' },
+  },
+  {
+    id: 'hgh',
+    from: 14,
+    color: '#fb7185',
+    name: { ar: 'ارتفاع هرمون النمو', en: 'Growth hormone rises' },
+    short: { ar: 'حماية العضلات', en: 'Muscle protection' },
+    body: {
+      ar: 'يبدأ هرمون النمو بالارتفاع ليحمي كتلتك العضلية ويشجّع الجسم على استخدام الدهون بدل البروتين. يرتفع أيضًا النورأدرينالين فيزيد النشاط والانتباه.',
+      en: 'Growth hormone starts climbing to protect your muscle and push the body to use fat instead of protein. Norepinephrine also rises, boosting energy and alertness.',
+    },
+    tip: { ar: 'تمرين خفيف الآن يضاعف أثر هرمون النمو.', en: 'Light exercise now amplifies the growth-hormone effect.' },
   },
   {
     id: 'fatburn',
@@ -81,6 +129,30 @@ export const STAGES = [
       en: 'Your cells start cleaning house: damaged proteins and old components are broken down and recycled. Its discoverer won the 2016 Nobel Prize.',
     },
     tip: { ar: 'استرخِ وتنفّس بعمق — جسمك يجدد نفسه.', en: 'Relax and breathe deeply — your body is renewing itself.' },
+  },
+  {
+    id: 'clarity',
+    from: 20,
+    color: '#818cf8',
+    name: { ar: 'صفاء ذهني', en: 'Mental clarity' },
+    short: { ar: 'ارتفاع BDNF', en: 'BDNF rises' },
+    body: {
+      ar: 'تصبح الكيتونات وقودًا رئيسيًا للدماغ ويرتفع عامل BDNF الذي يدعم نمو الخلايا العصبية والذاكرة. يشعر كثيرون بتركيز وهدوء ذهني لافت.',
+      en: 'Ketones become a main brain fuel and BDNF rises, supporting neuron growth and memory. Many people feel remarkable focus and calm.',
+    },
+    tip: { ar: 'استغل هذه الساعات للتعلّم أو العمل الإبداعي.', en: 'Use these hours for learning or creative work.' },
+  },
+  {
+    id: 'sensitivity',
+    from: 22,
+    color: '#2dd4bf',
+    name: { ar: 'تحسّن حساسية الإنسولين', en: 'Insulin sensitivity improves' },
+    short: { ar: 'انخفاض الالتهاب', en: 'Less inflammation' },
+    body: {
+      ar: 'بعد فترة طويلة من انخفاض الإنسولين تصبح خلاياك أكثر استجابة له، فتتحسن قدرتك على التحكم بالسكر لاحقًا. تنخفض أيضًا مؤشرات الالتهاب في الجسم.',
+      en: 'After a long stretch of low insulin your cells respond to it better, improving later blood-sugar control. Inflammation markers also fall.',
+    },
+    tip: { ar: 'عند كسر الصيام ابدأ بالبروتين والخضار قبل النشويات.', en: 'When you break the fast, start with protein and veg before starches.' },
   },
   {
     id: 'growth',

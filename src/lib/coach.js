@@ -48,6 +48,7 @@ export function buildProfile(s, ref = new Date()) {
 }
 
 // Observations the coach shows the user so they feel understood.
+// `id` is stable per observation so each is pushed once; `daily` ones are situational and never pushed.
 export function buildInsights(p, lang) {
   const t = (v) => tr(lang, v);
   const L = (ar, en) => (lang === 'ar' ? ar : en);
@@ -56,6 +57,7 @@ export function buildInsights(p, lang) {
   if (p.favDiet && p.favDiet.count >= 3 && p.favDiet.key !== p.dietId) {
     const d = dietById(p.favDiet.key);
     out.push({
+      id: `favDiet:${p.favDiet.key}`,
       icon: '🧭',
       text: L(
         `لاحظت أنك تعود كثيرًا إلى ${t(d.name)} — ربما حان وقت تجربته؟`,
@@ -67,6 +69,7 @@ export function buildInsights(p, lang) {
     const st = STAGES.find((x) => x.id === p.favStage.key);
     if (st)
       out.push({
+        id: `favStage:${st.id}`,
         icon: '🔬',
         text: L(
           `مرحلة «${t(st.name)}» تثير فضولك (${p.favStage.count} مرات). هدفك القادم الوصول إليها!`,
@@ -75,22 +78,22 @@ export function buildInsights(p, lang) {
       });
   }
   if (p.favSection?.key === 'exercises')
-    out.push({ icon: '🏃', text: L('أنت شخص حركي! سأقترح عليك تمارين أكثر.', "You're a mover! I'll suggest more workouts.") });
+    out.push({ id: 'mover', icon: '🏃', text: L('أنت شخص حركي! سأقترح عليك تمارين أكثر.', "You're a mover! I'll suggest more workouts.") });
   if (p.favSection?.key === 'foods')
-    out.push({ icon: '🥗', text: L('تحب استكشاف الأكلات — جرّب وصفة جديدة من قائمة المسموح.', 'You love exploring food — try a new recipe from the allowed list.') });
+    out.push({ id: 'foodie', icon: '🥗', text: L('تحب استكشاف الأكلات — جرّب وصفة جديدة من قائمة المسموح.', 'You love exploring food — try a new recipe from the allowed list.') });
 
   if (p.streak >= 2)
-    out.push({ icon: '🔥', text: L(`${p.streak} أيام متتالية! العادة تتشكل الآن.`, `${p.streak} days in a row! The habit is forming.`) });
-  else out.push({ icon: '🌱', text: L('كل رحلة تبدأ بيوم واحد. عد غدًا لتبدأ سلسلتك.', 'Every journey starts with one day. Come back tomorrow to start your streak.') });
+    out.push({ id: `streak:${p.streak}`, icon: '🔥', text: L(`${p.streak} أيام متتالية! العادة تتشكل الآن.`, `${p.streak} days in a row! The habit is forming.`) });
+  else out.push({ id: 'streak:start', daily: true, icon: '🌱', text: L('كل رحلة تبدأ بيوم واحد. عد غدًا لتبدأ سلسلتك.', 'Every journey starts with one day. Come back tomorrow to start your streak.') });
 
   if (p.fastsDone > 0)
-    out.push({ icon: '🏆', text: L(`أكملت ${p.fastsDone} صيام بمجموع ${p.totalHours} ساعة. فخور بك!`, `${p.fastsDone} fasts completed, ${p.totalHours} hours total. Proud of you!`) });
+    out.push({ id: `fastsDone:${p.fastsDone}`, icon: '🏆', text: L(`أكملت ${p.fastsDone} صيام بمجموع ${p.totalHours} ساعة. فخور بك!`, `${p.fastsDone} fasts completed, ${p.totalHours} hours total. Proud of you!`) });
   if (p.mood === 'tired')
-    out.push({ icon: '💤', text: L('تشعر بالتعب اليوم؛ خفّف التمارين وركّز على النوم والماء.', 'Feeling tired today — go easy on training and focus on sleep and water.') });
+    out.push({ id: 'tired', daily: true, icon: '💤', text: L('تشعر بالتعب اليوم؛ خفّف التمارين وركّز على النوم والماء.', 'Feeling tired today — go easy on training and focus on sleep and water.') });
   if (p.mood === 'hungry' && p.stage)
-    out.push({ icon: '💧', text: L('الجوع يأتي كموجات ويختفي خلال 20 دقيقة. كوب ماء الآن؟', 'Hunger comes in waves and fades within 20 minutes. Glass of water?') });
+    out.push({ id: 'hungry', daily: true, icon: '💧', text: L('الجوع يأتي كموجات ويختفي خلال 20 دقيقة. كوب ماء الآن؟', 'Hunger comes in waves and fades within 20 minutes. Glass of water?') });
   if (p.water < 4 && p.tod !== 'morning')
-    out.push({ icon: '🚰', text: L(`شربت ${p.water} أكواب فقط اليوم. جسمك يحتاج 8.`, `Only ${p.water} cups of water today. Your body wants 8.`) });
+    out.push({ id: 'water', daily: true, icon: '🚰', text: L(`شربت ${p.water} أكواب فقط اليوم. جسمك يحتاج 8.`, `Only ${p.water} cups of water today. Your body wants 8.`) });
 
   return out.slice(0, 4);
 }
@@ -171,6 +174,7 @@ export function buildAiPrompt(p, lang) {
 
 // Fields the server needs to personalise messages; keeps payloads small and private.
 export function snapshot(s) {
+  const plans = Object.values(s.mealPlans ?? {}).sort((a, b) => (a.date < b.date ? 1 : -1));
   return {
     lang: s.lang,
     name: s.name,
@@ -184,7 +188,9 @@ export function snapshot(s) {
     visits: s.visits.slice(-40),
     checkins: Object.fromEntries(Object.entries(s.checkins).slice(-3)),
     notifEnabled: s.notifEnabled,
-    notifEvery: s.notifEvery,
+    mealProfile: s.mealProfile,
+    mealDays: plans.slice(0, 3).map((p) => p.date),
+    recentMeals: plans.slice(0, 4).flatMap((p) => p.meals.map((m) => m.name)),
     tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
   };
 }

@@ -1,14 +1,12 @@
 import webpush from 'web-push';
 import { buildProfile, localMessage } from '../src/lib/coach.js';
 import { zonedDate } from '../src/lib/dates.js';
-import { stageAt } from '../src/data/fasting.js';
-import { tr } from '../src/i18n/strings.js';
-import { aiText, send } from './_lib.js';
+import { planNotifications } from '../src/lib/rules.js';
+import { MEAL_TYPES } from '../src/lib/meals.js';
+import { aiText, makeMealPlan, send } from './_lib.js';
 import { hasStore, listSubs, saveMeta, addInbox, deleteSub } from './_store.js';
 
-const QUIET = (h) => h >= 23 || h < 7; // no motivational pings at night; stage alerts still go out
-
-// Called every ~10 minutes (GitHub Actions). Sends stage, goal and motivational pushes.
+// Called every ~10 minutes (GitHub Actions). Applies the shared notification rules per device.
 export default async function handler(req, res) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.authorization !== `Bearer ${secret}`) return send(res, 401, { error: 'unauthorized' });
@@ -21,48 +19,38 @@ export default async function handler(req, res) {
 
   for (const rec of subs) {
     const { id, state } = rec;
+    if (!state.notifEnabled) continue;
     const lang = state.lang === 'en' ? 'en' : 'ar';
-    const t = (v) => tr(lang, v);
     const ref = zonedDate(state.tz);
-    let lastNotifAt = Number(rec.last_notif_at);
-    let stageSeen = rec.stage_seen;
-    const out = [];
-
-    if (state.fastStart) {
-      const hours = (Date.now() - state.fastStart) / 3.6e6;
-      const stage = stageAt(hours);
-      const seen = stageSeen?.fastStart === state.fastStart ? stageSeen : { fastStart: state.fastStart, stageId: stage.id, goalDone: hours >= state.fastGoal };
-      if (seen.stageId !== stage.id) out.push({ title: `${t(stage.name)} ✨`, body: t(stage.body), kind: 'stage' });
-      if (!seen.goalDone && hours >= state.fastGoal) {
-        out.push({ title: t('goalReached'), body: `${state.fastGoal}${t('hoursShort')} ✓`, kind: 'goal' });
-        seen.goalDone = true;
-      }
-      stageSeen = { ...seen, stageId: stage.id };
-    }
-
-    const due = state.notifEnabled && Date.now() - lastNotifAt >= (state.notifEvery ?? 60) * 60_000;
-    if (due && !QUIET(ref.getHours())) {
-      const profile = buildProfile(state, ref);
-      let text, source;
-      try {
-        text = await aiText(profile, lang);
-        source = 'ai';
-      } catch (e) {
-        console.error('ai failed', e.message);
-        text = localMessage(profile, lang);
-        source = 'local';
-      }
-      out.push({ title: t('appName'), body: text, kind: 'coach', source });
-      lastNotifAt = Date.now();
-    }
+    const { items, meta } = planNotifications(state, rec.meta ?? {}, ref);
 
     let gone = false;
-    for (const msg of out) {
-      const payload = { id: crypto.randomUUID(), at: Date.now(), ...msg };
+    for (const item of items) {
+      const payload = { id: crypto.randomUUID(), at: Date.now(), kind: item.kind, title: item.title, body: item.body };
+      let inbox = null;
       try {
-        await webpush.sendNotification(rec.subscription, JSON.stringify(payload), { TTL: 3600 });
+        if (item.ai === 'coach') {
+          const profile = buildProfile(state, ref);
+          try {
+            payload.body = await aiText(profile, lang);
+            payload.source = 'ai';
+          } catch {
+            payload.body = localMessage(profile, lang);
+            payload.source = 'local';
+          }
+        } else if (item.ai === 'meals') {
+          const plan = await makeMealPlan(state).catch((e) => (console.error('meal plan failed', e.message), null));
+          if (!plan) continue;
+          payload.body = plan.meals.map((m) => `${MEAL_TYPES[m.type].emoji} ${m.name}`).join(' · ');
+          inbox = { id: payload.id, at: payload.at, kind: 'meals', plan };
+        }
+        if (item.kind === 'coach' || item.kind === 'insight') {
+          inbox = { id: payload.id, at: payload.at, kind: item.kind, text: payload.body, source: payload.source ?? 'local', dietId: state.dietId };
+        }
+
+        await webpush.sendNotification(rec.subscription, JSON.stringify(payload), { TTL: 3600, urgency: item.kind === 'stage' || item.kind === 'goal' ? 'high' : 'normal' });
         stats.sent++;
-        if (msg.kind === 'coach') await addInbox(id, { id: payload.id, at: payload.at, text: msg.body, source: msg.source, dietId: state.dietId });
+        if (inbox) await addInbox(id, inbox);
       } catch (e) {
         if (e.statusCode === 404 || e.statusCode === 410) {
           await deleteSub(id);
@@ -70,10 +58,10 @@ export default async function handler(req, res) {
           gone = true;
           break;
         }
-        console.error('push failed', e.statusCode, e.body);
+        console.error('push failed', item.kind, e.statusCode ?? e.message);
       }
     }
-    if (!gone) await saveMeta(id, lastNotifAt, stageSeen);
+    if (!gone) await saveMeta(id, meta);
   }
   return send(res, 200, stats);
 }

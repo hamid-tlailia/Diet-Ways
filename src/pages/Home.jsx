@@ -1,13 +1,13 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Flame, Trophy, Clock, Droplet, Plus, Minus, ChevronLeft, ChevronRight, Sparkles, RefreshCw } from 'lucide-react';
+import { Flame, Trophy, Clock, Droplet, Plus, Minus, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { useStore, computeStreak, todayKey } from '../store/useStore';
 import { useT, MOODS } from '../i18n';
 import { dietById } from '../data/diets';
 import { stageAt } from '../data/fasting';
 import { quoteOfDay } from '../data/quotes';
 import { useNow } from '../lib/hooks';
-import { buildProfile, buildInsights, generateMessage, timeOfDay } from '../lib/coach';
+import { buildProfile, buildInsights, timeOfDay } from '../lib/coach';
+import MessageList from '../components/MessageList';
 import StageIcon from '../components/StageIcon';
 import { stagger } from '../components/ui';
 
@@ -23,7 +23,6 @@ export default function Home({ go, theme }) {
   const { t, lang } = useT();
   const state = useStore();
   const now = useNow(1000);
-  const [loading, setLoading] = useState(false);
   const Chevron = lang === 'ar' ? ChevronLeft : ChevronRight;
 
   const diet = state.dietId ? dietById(state.dietId) : null;
@@ -32,7 +31,6 @@ export default function Home({ go, theme }) {
   const done = state.history.filter((h) => (h.end - h.start) / 3.6e6 >= h.goal * 0.95).length;
   const hours = Math.round(state.history.reduce((a, h) => a + (h.end - h.start) / 3.6e6, 0));
   const insights = buildInsights(buildProfile(state), lang);
-  const latest = state.messages[0];
 
   const greeting = { morning: 'goodMorning', afternoon: 'goodAfternoon', evening: 'goodEvening', night: 'goodNight' }[timeOfDay()];
   const quote = quoteOfDay(theme);
@@ -42,14 +40,6 @@ export default function Home({ go, theme }) {
   const pct = state.fastStart ? Math.min(1, fastHours / state.fastGoal) : 0;
   const stage = stageAt(fastHours);
 
-  const newMessage = async () => {
-    setLoading(true);
-    try {
-      state.addMessage(await generateMessage(useStore.getState()));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   let i = 0;
   return (
@@ -150,15 +140,7 @@ export default function Home({ go, theme }) {
             </li>
           ))}
         </ul>
-        {latest && (
-          <div className="message-bubble">
-            <span className={`src-tag ${latest.source}`}>{latest.source === 'ai' ? t('aiSource') : t('localSource')}</span>
-            <p>{latest.text}</p>
-          </div>
-        )}
-        <button className="btn ghost" onClick={newMessage} disabled={loading}>
-          <RefreshCw size={16} className={loading ? 'spin' : ''} /> {loading ? t('generating') : t('generate')}
-        </button>
+        <MessageList messages={state.messages} />
       </motion.section>
       <motion.section {...stagger(i++)} className="card mood">
         <span className="eyebrow">{today.mood ? t('checkedIn') : t('dailyCheckin')}</span>

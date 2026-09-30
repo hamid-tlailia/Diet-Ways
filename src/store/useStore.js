@@ -19,7 +19,6 @@ const initialState = {
   fastStart: null, // epoch ms while a fast is running
   fastGoal: 16,
   history: [], // { start, end, goal, protocolId }
-  stageSeen: { fastStart: null, stageId: null, goalDone: false },
 
   // Engagement signals the coach learns from
   interests: {
@@ -33,10 +32,14 @@ const initialState = {
 
   // Notifications
   notifEnabled: false,
-  notifEvery: 60, // minutes
-  lastNotifAt: 0,
+  notifMeta: {}, // delivery bookkeeping for in-app notifications (see lib/rules.js)
   pushId: null, // set when this device receives server push (works with the app closed)
-  messages: [], // { id, text, source, at, dietId }
+  messages: [], // { id, text, source, at, dietId, kind }
+
+  // Meals
+  mealProfile: null, // questionnaire answers; { done: true, ... } once completed
+  mealPlans: {}, // dayKey -> AI plan
+  scans: [], // { id, at, thumb, ...analysis }
 };
 
 export const useStore = create(
@@ -94,14 +97,27 @@ export const useStore = create(
         set((s) => {
           if (msg.id && s.messages.some((m) => m.id === msg.id)) return {};
           const messages = [{ id: crypto.randomUUID(), at: Date.now(), ...msg }, ...s.messages].sort((a, b) => b.at - a.at);
-          return { messages: messages.slice(0, 60), lastNotifAt: Date.now() };
+          return { messages: messages.slice(0, 20) };
         }),
+
+      setMealPlan: (plan) =>
+        set((s) => {
+          const plans = { ...s.mealPlans, [plan.date]: plan };
+          const keep = Object.keys(plans).sort().slice(-30);
+          return { mealPlans: Object.fromEntries(keep.map((k) => [k, plans[k]])) };
+        }),
+
+      addScan: (scan) => set((s) => ({ scans: [{ id: crypto.randomUUID(), at: Date.now(), ...scan }, ...s.scans].slice(0, 30) })),
 
       reset: () => set({ ...initialState }),
     }),
     {
       name: 'diet-ways-store',
-      version: 1,
+      version: 2,
+      migrate: (persisted) => {
+        const { notifEvery, lastNotifAt, apiKey, stageSeen, ...rest } = persisted ?? {};
+        return rest;
+      },
       storage: createJSONStorage(() => localStorage),
     },
   ),
