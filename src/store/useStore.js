@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { todayKey } from '../lib/dates';
 
-export { todayKey, computeStreak } from '../lib/dates';
+export { todayKey, activeStreak } from '../lib/dates';
 
 
 
@@ -45,6 +45,7 @@ const initialState = {
 
   // Progress
   weights: [], // { date: dayKey, kg }
+  weighDay: null, // 0–6: the weekly weigh-in day (reminded that morning)
   badges: {}, // badgeId -> unlocked at (ms)
   badgeQueue: [], // unlocked but not yet celebrated
   badgesInit: false,
@@ -108,11 +109,25 @@ export const useStore = create(
           return { messages: messages.slice(0, 20) };
         }),
 
+      // Marks a planned meal of today as eaten (or not). Logged meals count towards an active day.
+      toggleMealEaten: (i) =>
+        set((s) => {
+          const k = todayKey();
+          const cur = s.checkins[k] ?? { mood: null, water: 0 };
+          const eaten = new Set(cur.meals ?? []);
+          eaten.has(i) ? eaten.delete(i) : eaten.add(i);
+          const planned = s.mealPlans[k]?.meals.length ?? cur.planned ?? 0;
+          return { checkins: { ...s.checkins, [k]: { ...cur, meals: [...eaten].sort(), planned } } };
+        }),
+
       setMealPlan: (plan) =>
         set((s) => {
+          // A new plan for a day resets that day's logged meals (the indexes refer to the old plan).
+          const cur = s.checkins[plan.date] ?? { mood: null, water: 0 };
+          const checkins = { ...s.checkins, [plan.date]: { ...cur, planned: plan.meals.length, meals: s.mealPlans[plan.date] ? [] : cur.meals ?? [] } };
           const plans = { ...s.mealPlans, [plan.date]: plan };
           const keep = Object.keys(plans).sort().slice(-30);
-          return { mealPlans: Object.fromEntries(keep.map((k) => [k, plans[k]])) };
+          return { mealPlans: Object.fromEntries(keep.map((k) => [k, plans[k]])), checkins };
         }),
 
       addScan: (scan) => set((s) => ({ scans: [{ id: crypto.randomUUID(), at: Date.now(), ...scan }, ...s.scans].slice(0, 30) })),
@@ -121,7 +136,8 @@ export const useStore = create(
         set((s) => {
           const date = todayKey();
           const weights = [...s.weights.filter((w) => w.date !== date), { date, kg }].sort((a, b) => (a.date < b.date ? -1 : 1));
-          return { weights: weights.slice(-60) };
+          // The first weigh-in sets the weekly weigh day (changeable in the weight card).
+          return { weights: weights.slice(-60), weighDay: s.weighDay ?? new Date().getDay() };
         }),
 
       // `silent` records badges without celebrating (first run, so past progress doesn't flood the screen).

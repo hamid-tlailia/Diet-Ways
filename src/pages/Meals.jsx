@@ -39,12 +39,18 @@ function Macros({ p, c, f, fiber }) {
   );
 }
 
-function MealCard({ meal, i }) {
+function MealCard({ meal, i, eaten, onEaten }) {
   const { t } = useT();
   const [open, setOpen] = useState(false);
   const type = MEAL_TYPES[meal.type];
   return (
-    <motion.article {...stagger(i)} className={open ? 'meal-card open' : 'meal-card'}>
+    <motion.article {...stagger(i)} className={`meal-card${open ? ' open' : ''}${eaten ? ' eaten' : ''}`}>
+      {/* Today's meals can be logged as eaten; logged meals count towards the active day. */}
+      {onEaten && (
+        <motion.button whileTap={{ scale: 0.9 }} className={eaten ? 'eat-btn on' : 'eat-btn'} onClick={onEaten} aria-pressed={!!eaten}>
+          {eaten ? t('eaten') : t('ateIt')}
+        </motion.button>
+      )}
       <button className="meal-head" onClick={() => setOpen(!open)} aria-expanded={open}>
         <span className="meal-emoji">{type.emoji}</span>
         <span className="meal-title">
@@ -92,8 +98,11 @@ function MealCard({ meal, i }) {
   );
 }
 
-function PlanView({ plan }) {
+function PlanView({ plan, loggable = false }) {
   const { t } = useT();
+  const eatenList = useStore((s) => (loggable ? s.checkins[plan.date]?.meals : null));
+  const toggleMealEaten = useStore((s) => s.toggleMealEaten);
+  const eaten = new Set(eatenList ?? []);
   return (
     <>
       <section className="card plan-total">
@@ -108,7 +117,7 @@ function PlanView({ plan }) {
       </section>
       <div className="meal-list">
         {plan.meals.map((m, i) => (
-          <MealCard key={i} meal={m} i={i} />
+          <MealCard key={i} meal={m} i={i} eaten={eaten.has(i)} onEaten={loggable ? () => toggleMealEaten(i) : null} />
         ))}
       </div>
     </>
@@ -160,7 +169,7 @@ function Today() {
     );
   return (
     <>
-      <PlanView plan={plan} />
+      <PlanView plan={plan} loggable={plan.date === todayKey()} />
       <button className="btn ghost" onClick={() => load(true)} disabled={state === 'loading'}>
         <RefreshCw size={16} className={state === 'loading' ? 'spin' : ''} /> {state === 'loading' ? t('planLoading') : t('anotherPlan')}
       </button>

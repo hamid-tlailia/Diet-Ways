@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Flame, Trophy, Clock, Droplet, Plus, Minus, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
-import { useStore, computeStreak, todayKey } from '../store/useStore';
+import { useStore, todayKey } from '../store/useStore';
+import { activeStreak, isActiveDay } from '../lib/dates';
 import { useT, MOODS } from '../i18n';
 import { dietById } from '../data/diets';
 import { stageAt } from '../data/fasting';
@@ -26,8 +27,11 @@ export default function Home({ go, theme }) {
   const Chevron = lang === 'ar' ? ChevronLeft : ChevronRight;
 
   const diet = state.dietId ? dietById(state.dietId) : null;
-  const streak = computeStreak(state.visits);
+  const streak = activeStreak(state.checkins);
   const today = state.checkins[todayKey()] ?? { mood: null, water: 0 };
+  const planned = state.mealPlans[todayKey()]?.meals.length ?? 0;
+  const eatenCount = Math.min(planned, today.meals?.length ?? 0);
+  const activeNow = isActiveDay({ ...today, planned });
   const done = state.history.filter((h) => (h.end - h.start) / 3.6e6 >= h.goal * 0.95).length;
   const hours = Math.round(state.history.reduce((a, h) => a + (h.end - h.start) / 3.6e6, 0));
   const insights = buildInsights(buildProfile(state), lang);
@@ -102,6 +106,40 @@ export default function Home({ go, theme }) {
           <strong>{hours}</strong>
           <span>{t('totalHours')}</span>
         </div>
+      </motion.section>
+
+      <motion.section {...stagger(i++)} className={activeNow ? 'card active-day done' : 'card active-day'}>
+        <div className="row-between">
+          <span className="eyebrow">🎯 {t('activeToday')}</span>
+          {activeNow && <span className="active-ok">{t('activeDone')}</span>}
+        </div>
+        <div className="active-rows">
+          <div className="active-row">
+            <span>💧 {t('water')}</span>
+            <div className="bar">
+              <motion.span animate={{ width: `${(Math.min(8, today.water) / 8) * 100}%` }} style={{ background: '#0ea5e9' }} />
+            </div>
+            <b className="num">{Math.min(8, today.water)}/8</b>
+          </div>
+          <div className="active-row">
+            <span>🍽️ {t('mealsLogged')}</span>
+            {planned ? (
+              <>
+                <div className="bar">
+                  <motion.span animate={{ width: `${(eatenCount / planned) * 100}%` }} style={{ background: 'var(--accent)' }} />
+                </div>
+                <button className="chip" onClick={() => go('meals')}>
+                  <b className="num">
+                    {eatenCount}/{planned}
+                  </b>
+                </button>
+              </>
+            ) : (
+              <small className="muted">{t('noPlanToday')}</small>
+            )}
+          </div>
+        </div>
+        {!activeNow && <p className="muted small">{t('activeHow')}</p>}
       </motion.section>
 
       <motion.section {...stagger(i++)} className={today.water >= 8 ? 'card water done' : 'card water'}>

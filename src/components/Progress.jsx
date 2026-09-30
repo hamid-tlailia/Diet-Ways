@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Scale, TrendingDown, TrendingUp, Minus as Flat } from 'lucide-react';
-import { useStore } from '../store/useStore';
+import { useStore, todayKey } from '../store/useStore';
 import { useT } from '../i18n';
 import { weeklyStats } from '../lib/progress';
 
@@ -66,6 +66,18 @@ export function WeightCard() {
   const { t, lang } = useT();
   const weights = useStore((s) => s.weights);
   const logWeight = useStore((s) => s.logWeight);
+  const weighDay = useStore((s) => s.weighDay);
+  const set = useStore((s) => s.set);
+  const loggedToday = weights.at(-1)?.date === todayKey();
+  const dayName = (d) => new Date(2026, 0, 4 + d).toLocaleDateString(lang === 'ar' ? 'ar' : 'en', { weekday: 'long' }); // 2026-01-04 is a Sunday
+  const nextWeigh = (() => {
+    if (weighDay == null) return null;
+    const n = new Date();
+    const diff = (weighDay - n.getDay() + 7) % 7;
+    if (diff === 0 && !loggedToday) return t('weighToday');
+    const next = new Date(n.getTime() + (diff || 7) * 864e5);
+    return `${dayName(weighDay)} ${next.toLocaleDateString(lang === 'ar' ? 'ar' : 'en', { day: 'numeric', month: 'short' })}`;
+  })();
   const [kg, setKg] = useState('');
   const current = weights.at(-1)?.kg;
   const change = weights.length >= 2 ? +(weights.at(-1).kg - weights[0].kg).toFixed(1) : null;
@@ -97,6 +109,23 @@ export function WeightCard() {
         </div>
       )}
       {weights.length >= 2 ? <WeightChart points={weights.slice(-12)} lang={lang} /> : <p className="muted small">{t('weightHint')}</p>}
+      {/* Weekly weigh-in: one fixed day, reminded that morning. */}
+      <div className="weigh-plan">
+        {nextWeigh && (
+          <p className={nextWeigh === t('weighToday') ? 'weigh-next due' : 'weigh-next'}>
+            📅 {loggedToday ? t('weighedToday') : `${t('nextWeigh')}: ${nextWeigh}`}
+          </p>
+        )}
+        <span className="field-label">{t('weighDay')}</span>
+        <div className="day-chips">
+          {[6, 0, 1, 2, 3, 4, 5].map((d) => (
+            <button key={d} className={weighDay === d ? 'chip on' : 'chip'} onClick={() => set({ weighDay: d })}>
+              {new Date(2026, 0, 4 + d).toLocaleDateString(lang === 'ar' ? 'ar' : 'en', { weekday: 'short' })}
+            </button>
+          ))}
+        </div>
+        <p className="muted small">{t('weighTip')}</p>
+      </div>
       <div className="row-gap">
         <input type="number" inputMode="decimal" step="0.1" min="30" max="300" placeholder={t('weightPlaceholder')} value={kg} onChange={(e) => setKg(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} className="grow" />
         <button className="btn primary" onClick={save} disabled={!kg}>

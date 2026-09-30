@@ -2757,3 +2757,97 @@ html[dir='rtl'] .dock-bubble {
 .shop-item.done .shop-name {
   text-decoration: line-through;
 }
+
+/* ───────────── Meal logging ───────────── */
+.meal-card {
+  display: flex;
+  flex-direction: column;
+}
+.meal-card .meal-head {
+  order: 1;
+}
+.meal-card .eat-btn {
+  order: 2;
+}
+.meal-card .meal-body {
+  order: 3;
+}
+.eat-btn {
+  align-self: flex-start;
+  margin: -4px 14px 12px;
+  margin-inline-start: 72px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--accent);
+  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  background: transparent;
+}
+.eat-btn.on {
+  color: #fff;
+  border-color: transparent;
+  background: var(--ok);
+}
+.meal-card.eaten {
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--border));
+}
+
+/* ───────────── Active day ───────────── */
+.active-day {
+  display: grid;
+  gap: 12px;
+}
+.active-day.done {
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--border));
+  background: linear-gradient(160deg, color-mix(in srgb, var(--ok) 10%, var(--surface)), var(--surface));
+}
+.active-ok {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--ok);
+}
+.active-rows {
+  display: grid;
+  gap: 10px;
+}
+.active-row {
+  display: grid;
+  grid-template-columns: minmax(96px, auto) 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+}
+.active-row .chip {
+  padding: 4px 10px;
+}
+.active-row small {
+  grid-column: 2 / -1;
+}
+
+/* ───────────── Weigh-in plan ───────────── */
+.weigh-plan {
+  display: grid;
+  gap: 8px;
+}
+.weigh-next {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  background: var(--surface);
+}
+.weigh-next.due {
+  color: #fff;
+  background: var(--accent);
+}
+.day-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.day-chips .chip {
+  padding: 6px 10px;
+  font-size: 0.78rem;
+}

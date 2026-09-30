@@ -1,5 +1,5 @@
 // Achievements, computed from the stored state. Each test returns true once the badge is earned.
-import { computeStreak, todayKey } from './dates.js';
+import { activeStreak, todayKey } from './dates.js';
 import { fastCompleted, fastHours, lastDays } from './progress.js';
 
 const waterStreak = (s) => {
@@ -21,8 +21,8 @@ export const BADGES = [
   { id: 'fasts20', emoji: '🏆', name: { ar: 'بطل الصيام', en: 'Fasting champion' }, desc: { ar: 'أكملت 20 صيامًا', en: 'Completed 20 fasts' }, test: (s) => s.history.filter(fastCompleted).length >= 20 },
   { id: 'water1', emoji: '💧', name: { ar: 'يوم مرتوٍ', en: 'Hydrated day' }, desc: { ar: 'أكملت 8 أكواب في يوم', en: 'Drank 8 cups in a day' }, test: (s) => Object.values(s.checkins ?? {}).some((c) => (c.water ?? 0) >= 8) },
   { id: 'water7', emoji: '🌊', name: { ar: 'أسبوع الماء', en: 'Water week' }, desc: { ar: '7 أيام متتالية بـ 8 أكواب', en: '7 days in a row with 8 cups' }, test: (s) => waterStreak(s) >= 7 },
-  { id: 'streak7', emoji: '📆', name: { ar: 'أسبوع بلا انقطاع', en: 'Unbroken week' }, desc: { ar: 'فتحت التطبيق 7 أيام متتالية', en: 'Opened the app 7 days in a row' }, test: (s) => computeStreak(s.visits) >= 7 },
-  { id: 'streak30', emoji: '👑', name: { ar: 'شهر من الالتزام', en: 'Month of commitment' }, desc: { ar: '30 يومًا متتاليًا', en: '30 days in a row' }, test: (s) => computeStreak(s.visits) >= 30 },
+  { id: 'streak7', emoji: '📆', name: { ar: 'أسبوع بلا انقطاع', en: 'Unbroken week' }, desc: { ar: '7 أيام نشطة متتالية', en: '7 active days in a row' }, test: (s) => activeStreak(s.checkins) >= 7 },
+  { id: 'streak30', emoji: '👑', name: { ar: 'شهر من الالتزام', en: 'Month of commitment' }, desc: { ar: '30 يومًا نشطًا متتاليًا', en: '30 active days in a row' }, test: (s) => activeStreak(s.checkins) >= 30 },
   { id: 'profile', emoji: '📝', name: { ar: 'أعرف نفسي', en: 'Know thyself' }, desc: { ar: 'أكملت استبيان الوجبات', en: 'Completed the meal questionnaire' }, test: (s) => !!s.mealProfile?.done },
   { id: 'scan1', emoji: '📸', name: { ar: 'عين الخبير', en: 'Expert eye' }, desc: { ar: 'حلّلت أول وجبة بالتصوير', en: 'Scanned your first meal' }, test: (s) => s.scans.length >= 1 },
   { id: 'weigh1', emoji: '⚖️', name: { ar: 'نقطة البداية', en: 'Starting point' }, desc: { ar: 'سجّلت وزنك لأول مرة', en: 'Logged your weight for the first time' }, test: (s) => s.weights.length >= 1 },

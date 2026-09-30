@@ -1,13 +1,26 @@
 export const todayKey = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-// Consecutive days (ending today or yesterday) the user opened the app.
-export function computeStreak(visits, ref = new Date()) {
-  const set = new Set(visits);
+// An active day: the water goal is met and every meal of that day's plan was logged as eaten
+// (days without a plan only need the water).
+export const WATER_GOAL = 8;
+export function isActiveDay(c) {
+  if (!c || (c.water ?? 0) < WATER_GOAL) return false;
+  return !c.planned || (c.meals?.length ?? 0) >= c.planned;
+}
+
+// What's still missing for today to count: { water: cups left, meals: meal indexes not yet logged }.
+export function missingToday(c, plannedMeals = []) {
+  const eaten = new Set(c?.meals ?? []);
+  return { water: Math.max(0, WATER_GOAL - (c?.water ?? 0)), meals: plannedMeals.map((_, i) => i).filter((i) => !eaten.has(i)) };
+}
+
+// Consecutive active days, ending today (if already active) or yesterday.
+export function activeStreak(checkins = {}, ref = new Date()) {
   const d = new Date(ref);
-  if (!set.has(todayKey(d))) d.setDate(d.getDate() - 1);
+  if (!isActiveDay(checkins[todayKey(d)])) d.setDate(d.getDate() - 1);
   let n = 0;
-  while (set.has(todayKey(d))) {
+  while (isActiveDay(checkins[todayKey(d)])) {
     n++;
     d.setDate(d.getDate() - 1);
   }

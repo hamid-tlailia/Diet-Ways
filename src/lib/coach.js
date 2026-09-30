@@ -1,6 +1,6 @@
 import { DIETS, dietById } from '../data/diets.js';
 import { STAGES, stageAt, PROTOCOLS } from '../data/fasting.js';
-import { computeStreak, todayKey } from './dates.js';
+import { activeStreak, todayKey } from './dates.js';
 import { tr, GOALS, MOODS } from '../i18n/strings.js';
 
 const topKey = (obj = {}) => {
@@ -35,7 +35,7 @@ export function buildProfile(s, ref = new Date()) {
     favStage,
     favSection,
     favProtocol,
-    streak: computeStreak(s.visits ?? [], ref),
+    streak: activeStreak(s.checkins ?? {}, ref),
     fastsDone: completed.length,
     totalHours: Math.round(history.reduce((a, h) => a + (h.end - h.start) / 3.6e6, 0)),
     fastingHours,
@@ -88,7 +88,7 @@ export function buildInsights(p, lang) {
 
   if (p.streak >= 2)
     out.push({ id: `streak:${p.streak}`, icon: '🔥', text: L(`${p.streak} أيام متتالية! العادة تتشكل الآن.`, `${p.streak} days in a row! The habit is forming.`) });
-  else out.push({ id: 'streak:start', daily: true, icon: '🌱', text: L('كل رحلة تبدأ بيوم واحد. عد غدًا لتبدأ سلسلتك.', 'Every journey starts with one day. Come back tomorrow to start your streak.') });
+  else out.push({ id: 'streak:start', daily: true, icon: '🌱', text: L('أكمل ماءك (8 أكواب) وسجّل وجبات اليوم ليُحتسب يومك نشطًا وتبدأ سلسلتك.', 'Finish your 8 cups and log today\'s meals so today counts as active and your streak begins.') });
 
   if (p.fastsDone > 0)
     out.push({ id: `fastsDone:${p.fastsDone}`, icon: '🏆', text: L(`أكملت ${p.fastsDone} صيام بمجموع ${p.totalHours} ساعة. فخور بك!`, `${p.fastsDone} fasts completed, ${p.totalHours} hours total. Proud of you!`) });
@@ -193,6 +193,7 @@ export function snapshot(s) {
     visits: s.visits.slice(-40),
     checkins: Object.fromEntries(Object.entries(s.checkins).sort().slice(-8)),
     weights: (s.weights ?? []).slice(-12),
+    weighDay: s.weighDay ?? null,
     notifEnabled: s.notifEnabled,
     mealProfile: s.mealProfile,
     mealDays: plans.slice(0, 3).map((p) => p.date),

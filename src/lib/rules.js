@@ -2,7 +2,7 @@
 // Pure: takes the user's state, the delivery bookkeeping (`meta`) and their local clock; returns what to send.
 import { stageAt } from '../data/fasting.js';
 import { tr } from '../i18n/strings.js';
-import { todayKey } from './dates.js';
+import { todayKey, isActiveDay, missingToday } from './dates.js';
 import { buildProfile, buildInsights } from './coach.js';
 import { weeklyStats } from './progress.js';
 
@@ -123,8 +123,44 @@ export function planNotifications(state, meta = {}, ref = new Date(), now = Date
     if (!Number.isFinite(mh) || state.fastStart) continue; // while fasting, the break-fast reminder covers it
     const diff = minutes - (mh * 60 + (mm || 0));
     if (diff >= 0 && diff <= 20 && once(`mealtime:${i}`)) {
-      items.push({ key: `mealtime:${i}`, kind: 'mealtime', title: L(`${MEAL_EMOJI[m.type] ?? '🍽️'} حان وقت ${MEAL_AR[m.type] ?? 'الوجبة'}`, `${MEAL_EMOJI[m.type] ?? '🍽️'} Time for ${m.type ?? 'your meal'}`), body: m.name });
+      items.push({ key: `mealtime:${i}`, kind: 'mealtime', title: L(`${MEAL_EMOJI[m.type] ?? '🍽️'} حان وقت ${MEAL_AR[m.type] ?? 'الوجبة'}`, `${MEAL_EMOJI[m.type] ?? '🍽️'} Time for ${m.type ?? 'your meal'}`), body: L(`${m.name} — سجّلها بعد أن تأكلها ✓`, `${m.name} — log it once you've eaten ✓`) });
       return { items, meta: next };
+    }
+  }
+
+  // ── Weigh-in day: one morning reminder, only if today's weight isn't logged yet.
+  if (state.weighDay != null && ref.getDay() === state.weighDay && hour >= 7 && hour < 12 && !(state.weights ?? []).some((w) => w.date === day) && once('weigh')) {
+    items.push({
+      key: 'weigh',
+      kind: 'weigh',
+      title: L('⚖️ اليوم موعد قياس وزنك', "⚖️ It's weigh-in day"),
+      body: L('قِس وزنك الآن قبل الأكل وبعد دخول الحمام، وسجّله في صفحة مدربك لمتابعة تقدّمك.', 'Weigh yourself now, before eating, and log it on the Coach page to track your progress.'),
+    });
+    return { items, meta: next };
+  }
+
+  // ── Active day: afternoon and evening nudges listing exactly what's missing (water + planned meals).
+  const today = state.checkins?.[day];
+  if (!isActiveDay(today)) {
+    for (const [h, key] of [
+      [17, 'complete:pm'],
+      [20, 'complete:eve'],
+    ]) {
+      if (hour >= h && hour < h + 2 && once(key)) {
+        const miss = missingToday(today, plan);
+        const parts = [];
+        if (miss.water) parts.push(L(`${miss.water} أكواب ماء`, `${miss.water} cups of water`));
+        const meals = miss.meals.map((i) => plan[i]?.name).filter(Boolean);
+        if (meals.length) parts.push(L(`تسجيل: ${meals.join('، ')}`, `logging: ${meals.join(', ')}`));
+        if (!parts.length) break;
+        items.push({
+          key,
+          kind: 'complete',
+          title: L('🎯 أكمل يومك النشط', '🎯 Complete your active day'),
+          body: L(`باقي لك ${parts.join(' و')} ليُحتسب اليوم يومًا نشطًا ولا تنقطع سلسلتك.`, `Still to go: ${parts.join(' and ')} so today counts as active and your streak continues.`),
+        });
+        return { items, meta: next };
+      }
     }
   }
 
