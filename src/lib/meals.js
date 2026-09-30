@@ -137,7 +137,8 @@ export function normalizeShopping(raw) {
   return { groups, tip: str(raw.tip), at: Date.now() };
 }
 
-export function scanPrompt(state, lang) {
+// With `text`, the user describes what they ate instead of sending a photo (manual log or an edited scan).
+export function scanPrompt(state, lang, text) {
   const language = lang === 'en' ? 'English' : 'Arabic';
   return {
     system:
@@ -150,7 +151,9 @@ export function scanPrompt(state, lang) {
       `Write every text field in ${language}. Respond with JSON only, matching this shape: ` +
       '{"name":"","items":[{"name":"","grams":0,"calories":0}],"calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0,' +
       '"suitable":"yes|moderate|no","verdict":"","tips":[""]}',
-    user: `User profile:\n${JSON.stringify(describeProfile(state), null, 2)}\nAnalyse the attached meal photo.`,
+    user:
+      `User profile:\n${JSON.stringify(describeProfile(state), null, 2)}\n` +
+      (text ? `There is no photo. The user describes the meal they ate (treat stated grams as exact):\n${String(text).slice(0, 800)}` : 'Analyse the attached meal photo.'),
   };
 }
 
@@ -194,4 +197,66 @@ export function normalizeScan(raw) {
     verdict: str(raw?.verdict),
     tips: (Array.isArray(raw?.tips) ? raw.tips : []).map(str).filter(Boolean).slice(0, 4),
   };
+}
+
+// ── Logging what was actually eaten into a day's plan ──────────────────────
+const sumTotals = (meals) => {
+  const sum = (k) => meals.reduce((a, m) => a + (m[k] || 0), 0);
+  return { calories: sum('calories'), protein: sum('protein'), carbs: sum('carbs'), fat: sum('fat') };
+};
+const bare = ({ logged, replaced, extra, ...m }) => m;
+// `target` keeps the day's planned calories from the AI plan, so replacements can be compared to it.
+const withMeals = (plan, meals) => ({ ...plan, meals, target: plan.target ?? plan.totals?.calories ?? 0, totals: sumTotals(meals) });
+
+// Morning-to-night guess for the meal type of something eaten right now.
+export function guessMealType(d = new Date()) {
+  const h = d.getHours() + d.getMinutes() / 60;
+  return h < 10.5 ? 'breakfast' : h < 12 ? 'snack' : h < 15.5 ? 'lunch' : h < 18 ? 'snack' : 'dinner';
+}
+
+// Places an eaten meal into the plan: it replaces (auto-cancels) the first not-yet-eaten suggestion of the
+// same type, or is added as an extra. Returns the new plan, eaten indexes and the cancelled suggestion.
+export function placeMeal(plan, eaten, meal) {
+  const meals = [...plan.meals];
+  const done = new Set(eaten);
+  let i = meals.findIndex((m, j) => m.type === meal.type && !m.logged && !done.has(j));
+  const cancelled = i >= 0 ? meals[i] : null;
+  if (cancelled) meals[i] = { ...bare(meal), logged: true, replaced: bare(cancelled) };
+  else {
+    i = meals.length;
+    meals.push({ ...bare(meal), logged: true, extra: true });
+  }
+  done.add(i);
+  return { plan: withMeals(plan, meals), eaten: [...done].sort((a, b) => a - b), index: i, cancelled };
+}
+
+// Edits meal `i` in place; editing a suggestion turns it into what was really eaten (keeping the original).
+export function editMeal(plan, eaten, i, meal) {
+  const meals = [...plan.meals];
+  const old = meals[i];
+  meals[i] = old.logged ? { ...old, ...bare(meal) } : { ...bare(meal), logged: true, replaced: bare(old) };
+  return { plan: withMeals(plan, meals), eaten: [...new Set([...eaten, i])].sort((a, b) => a - b) };
+}
+
+// Removes a logged meal: a replacement gives the suggestion back, an extra disappears.
+export function unlogMeal(plan, eaten, i) {
+  const meals = [...plan.meals];
+  const old = meals[i];
+  let done = eaten.filter((j) => j !== i);
+  if (old?.extra) {
+    meals.splice(i, 1);
+    done = done.map((j) => (j > i ? j - 1 : j));
+  } else if (old?.replaced) meals[i] = old.replaced;
+  return { plan: withMeals(plan, meals), eaten: done };
+}
+
+// A fresh plan for a day keeps everything already eaten, re-placed over the new suggestions.
+export function mergeEaten(oldPlan, eaten, next) {
+  let plan = { ...next, meals: next.meals.map(bare) };
+  let done = [];
+  for (const i of eaten) {
+    const m = oldPlan?.meals[i];
+    if (m) ({ plan, eaten: done } = placeMeal(plan, done, m));
+  }
+  return { plan, eaten: done };
 }

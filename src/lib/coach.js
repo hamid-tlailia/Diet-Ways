@@ -196,7 +196,7 @@ export function snapshot(s) {
     weighDay: s.weighDay ?? null,
     notifEnabled: s.notifEnabled,
     mealProfile: s.mealProfile,
-    mealDays: plans.slice(0, 3).map((p) => p.date),
+    mealDays: plans.filter((p) => !p.custom).slice(0, 3).map((p) => p.date),
     // Today's meals with their times, for meal-time and break-fast reminders.
     todayMeals: plans[0] ? { date: plans[0].date, meals: plans[0].meals.map((m) => ({ type: m.type, time: m.time, name: m.name })) } : null,
     recentMeals: plans.slice(0, 4).flatMap((p) => p.meals.map((m) => m.name)),

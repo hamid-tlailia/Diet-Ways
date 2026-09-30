@@ -31,7 +31,8 @@ let pending = null;
 // Makes today's plan once (deduped across callers) when the questionnaire is done and none exists yet.
 export function ensureTodayPlan(getState, save) {
   const s = getState();
-  if (!s.mealProfile?.done || s.mealPlans[todayKey()] || pending) return pending;
+  // A custom plan (only meals the user logged) still gets its AI suggestions, merged in by setMealPlan.
+  if (!s.mealProfile?.done || (s.mealPlans[todayKey()] && !s.mealPlans[todayKey()].custom) || pending) return pending;
   pending = requestMealPlan(s)
     .then((plan) => (save(plan), plan))
     .finally(() => (pending = null));
@@ -64,4 +65,9 @@ export async function scanMeal(file, state, onRetry) {
   URL.revokeObjectURL(img.src);
   const { scan } = await postAI('/api/scan', { image: full.split(',')[1], mime: 'image/jpeg', state: snapshot(state) }, onRetry);
   return { ...scan, thumb };
+}
+
+// Estimates calories and macros from a written description (manual log, or a scan the user corrected).
+export async function estimateMeal(text, state, onRetry) {
+  return (await postAI('/api/scan', { text, state: snapshot(state) }, onRetry)).scan;
 }

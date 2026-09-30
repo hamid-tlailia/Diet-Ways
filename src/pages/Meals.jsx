@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Camera, ImagePlus, RefreshCw, ChevronDown, Clock, ShieldAlert, Sparkles } from 'lucide-react';
+import { Camera, ImagePlus, RefreshCw, ChevronDown, Clock, ShieldAlert, Sparkles, Pencil, Undo2, Trash2, Plus, Check } from 'lucide-react';
 import { useStore, todayKey } from '../store/useStore';
 import { useT } from '../i18n';
 import { Segmented, stagger, toast } from '../components/ui';
 import { MEAL_TYPES } from '../lib/meals';
 import Questionnaire from '../components/Questionnaire';
+import MealEditor from '../components/MealEditor';
 import { ensureTodayPlan, requestMealPlan, requestShoppingList, scanMeal } from '../lib/mealsApi';
 
 function Macros({ p, c, f, fiber }) {
@@ -39,20 +40,21 @@ function Macros({ p, c, f, fiber }) {
   );
 }
 
-function MealCard({ meal, i, eaten, onEaten }) {
+function MealCard({ meal, i, eaten, onEaten, onEdit, onUndo }) {
   const { t } = useT();
   const [open, setOpen] = useState(false);
-  const type = MEAL_TYPES[meal.type];
+  const type = MEAL_TYPES[meal.type] ?? MEAL_TYPES.snack;
   return (
-    <motion.article {...stagger(i)} className={`meal-card${open ? ' open' : ''}${eaten ? ' eaten' : ''}`}>
-      {/* Today's meals can be logged as eaten; logged meals count towards the active day. */}
+    <motion.article {...stagger(i)} className={`meal-card${open ? ' open' : ''}${eaten ? ' eaten' : ''}${meal.logged ? ' logged' : ''}`}>
+      {/* Today's meals can be logged as eaten; logged meals count towards the active day. What the user
+          actually ate (scanned or typed) stays eaten — it's removed or reverted from its body instead. */}
       {onEaten && (
-        <motion.button whileTap={{ scale: 0.9 }} className={eaten ? 'eat-btn on' : 'eat-btn'} onClick={onEaten} aria-pressed={!!eaten}>
+        <motion.button whileTap={{ scale: 0.9 }} className={eaten ? 'eat-btn on' : 'eat-btn'} onClick={meal.logged ? () => setOpen(true) : onEaten} aria-pressed={!!eaten}>
           {eaten ? t('eaten') : t('ateIt')}
         </motion.button>
       )}
       <button className="meal-head" onClick={() => setOpen(!open)} aria-expanded={open}>
-        <span className="meal-emoji">{type.emoji}</span>
+        {meal.thumb ? <img className="meal-thumb" src={meal.thumb} alt="" /> : <span className="meal-emoji">{type.emoji}</span>}
         <span className="meal-title">
           <small>
             {t(type)}
@@ -64,6 +66,20 @@ function MealCard({ meal, i, eaten, onEaten }) {
             )}
           </small>
           <strong>{meal.name}</strong>
+          {meal.logged && (
+            <small className="replaced">
+              <span className="logged-tag">
+                {meal.source === 'scan' ? t('loggedScan') : t('loggedByYou')}
+                {meal.extra ? ` · ${t('extraMeal')}` : ''}
+              </span>
+              {meal.replaced && (
+                <>
+                  {' '}
+                  {t('insteadOf')}: <s>{meal.replaced.name}</s>
+                </>
+              )}
+            </small>
+          )}
         </span>
         <span className="meal-kcal num">
           {meal.calories}
@@ -74,21 +90,49 @@ function MealCard({ meal, i, eaten, onEaten }) {
       <AnimatePresence initial={false}>
         {open && (
           <motion.div className="meal-body" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
-            <p>{meal.description}</p>
-            {meal.ingredients.length > 0 && (
-              <div className="pills">
-                {meal.ingredients.map((x, k) => (
-                  <span key={k} className="pill ok">
-                    {x}
-                  </span>
+            {meal.description && <p>{meal.description}</p>}
+            {meal.items?.length > 0 ? (
+              <ul className="scan-items">
+                {meal.items.map((x, k) => (
+                  <li key={k}>
+                    <span>{x.name}</span>
+                    <span className="muted num">
+                      {x.grams ? `${x.grams} ${t('g')} · ` : ''}
+                      {x.calories} {t('kcal')}
+                    </span>
+                  </li>
                 ))}
-              </div>
+              </ul>
+            ) : (
+              meal.ingredients?.length > 0 && (
+                <div className="pills">
+                  {meal.ingredients.map((x, k) => (
+                    <span key={k} className="pill ok">
+                      {x}
+                    </span>
+                  ))}
+                </div>
+              )
             )}
             <Macros p={meal.protein} c={meal.carbs} f={meal.fat} />
             {meal.why && (
               <div className="tip">
                 <strong>💡 {t('whyThis')}</strong>
                 <p>{meal.why}</p>
+              </div>
+            )}
+            {(onEdit || onUndo) && (
+              <div className="row-gap wrap meal-actions">
+                {onEdit && (
+                  <button className="chip" onClick={onEdit}>
+                    <Pencil size={14} /> {meal.logged ? t('editMeal') : t('logOther')}
+                  </button>
+                )}
+                {onUndo && meal.logged && (
+                  <button className="chip" onClick={onUndo}>
+                    {meal.replaced ? <Undo2 size={14} /> : <Trash2 size={14} />} {meal.replaced ? t('restoreSuggested') : t('removeMeal')}
+                  </button>
+                )}
               </div>
             )}
           </motion.div>
@@ -98,28 +142,87 @@ function MealCard({ meal, i, eaten, onEaten }) {
   );
 }
 
+// Toast after logging: tells the user which suggestion was cancelled automatically.
+function announceLogged(out, t) {
+  if (!out) return;
+  toast({ title: out.cancelled ? `✓ ${t('mealReplaced')}` : `✓ ${t('mealExtra')}`, body: out.cancelled ? `${t('insteadOf')}: ${out.cancelled.name}` : undefined, duration: 4000 });
+}
+
 function PlanView({ plan, loggable = false }) {
   const { t } = useT();
   const eatenList = useStore((s) => (loggable ? s.checkins[plan.date]?.meals : null));
   const toggleMealEaten = useStore((s) => s.toggleMealEaten);
+  const logMeal = useStore((s) => s.logMeal);
+  const editTodayMeal = useStore((s) => s.editTodayMeal);
+  const unlogTodayMeal = useStore((s) => s.unlogTodayMeal);
+  const [editing, setEditing] = useState(null); // meal index, 'new' or null
   const eaten = new Set(eatenList ?? []);
+  const eatenKcal = plan.meals.reduce((a, m, i) => a + (eaten.has(i) ? m.calories : 0), 0);
+  const target = plan.target || plan.totals.calories;
+  const diff = target - eatenKcal;
+
+  const editor = (idx) => (
+    <MealEditor
+      key={`ed-${idx}`}
+      meal={idx === 'new' ? {} : plan.meals[idx]}
+      extra={idx === 'new' ? { source: 'manual' } : { source: plan.meals[idx].source ?? 'manual', thumb: plan.meals[idx].thumb, description: plan.meals[idx].logged ? plan.meals[idx].description : '', ingredients: plan.meals[idx].ingredients }}
+      title={idx === 'new' || !plan.meals[idx].logged ? t('logTitle') : t('editTitle')}
+      saveLabel={idx !== 'new' && plan.meals[idx].logged ? t('saveEdit') : t('saveMeal')}
+      onCancel={() => setEditing(null)}
+      onSave={(meal) => {
+        if (idx === 'new') announceLogged(logMeal(meal), t);
+        else editTodayMeal(idx, meal);
+        setEditing(null);
+      }}
+    />
+  );
+
   return (
     <>
       <section className="card plan-total">
         <span className="eyebrow">{t('dayTotal')}</span>
-        <div className="row-between">
-          <strong className="big-kcal num">
-            {plan.totals.calories} <small>{t('kcal')}</small>
-          </strong>
-        </div>
+        <strong className="big-kcal num">
+          {plan.totals.calories} <small>{t('kcal')}</small>
+        </strong>
+        {/* What was really eaten, against the day's planned calories. */}
+        {loggable && eaten.size > 0 && (
+          <div className={diff < 0 ? 'budget over' : 'budget'}>
+            <span>
+              {t('eatenOf')} <b className="num">{eatenKcal}</b>
+            </span>
+            <span>
+              {diff < 0 ? t('overBudget') : t('leftBudget')} <b className="num">{Math.abs(diff)}</b> {t('kcal')}
+            </span>
+          </div>
+        )}
         <Macros p={plan.totals.protein} c={plan.totals.carbs} f={plan.totals.fat} />
         {plan.tip && <p className="muted small">💡 {plan.tip}</p>}
       </section>
       <div className="meal-list">
-        {plan.meals.map((m, i) => (
-          <MealCard key={i} meal={m} i={i} eaten={eaten.has(i)} onEaten={loggable ? () => toggleMealEaten(i) : null} />
-        ))}
+        {plan.meals.map((m, i) =>
+          editing === i ? (
+            editor(i)
+          ) : (
+            <MealCard
+              key={`${i}-${m.name}`}
+              meal={m}
+              i={i}
+              eaten={eaten.has(i)}
+              onEaten={loggable ? () => toggleMealEaten(i) : null}
+              onEdit={loggable ? () => setEditing(i) : null}
+              onUndo={loggable ? () => unlogTodayMeal(i) : null}
+            />
+          ),
+        )}
       </div>
+      {loggable &&
+        (editing === 'new' ? (
+          editor('new')
+        ) : (
+          <button className="btn ghost" onClick={() => setEditing('new')}>
+            <Plus size={16} /> {t('logOther')}
+          </button>
+        ))}
     </>
   );
 }
@@ -177,7 +280,7 @@ function Today() {
   );
 }
 
-function ScanResult({ scan }) {
+function ScanResult({ scan, children }) {
   const { t } = useT();
   return (
     <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className={`card scan-result fit-${scan.suitable}`}>
@@ -215,6 +318,7 @@ function ScanResult({ scan }) {
           </ul>
         </div>
       )}
+      {children}
     </motion.section>
   );
 }
@@ -222,7 +326,9 @@ function ScanResult({ scan }) {
 function Scan() {
   const { t } = useT();
   const addScan = useStore((s) => s.addScan);
+  const logMeal = useStore((s) => s.logMeal);
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState(null); // null | 'edit' | 'added'
   const [preview, setPreview] = useState(null);
   const [result, setResult] = useState(null);
   const camera = useRef();
@@ -233,6 +339,7 @@ function Scan() {
     e.target.value = '';
     if (!file) return;
     setResult(null);
+    setMode(null);
     setPreview(URL.createObjectURL(file));
     setBusy(true);
     try {
@@ -269,7 +376,33 @@ function Scan() {
         <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
         <input ref={gallery} type="file" accept="image/*" hidden onChange={onFile} />
       </section>
-      {shown && !busy && <ScanResult scan={shown} />}
+      {shown && !busy && mode !== 'edit' && (
+        <ScanResult scan={shown}>
+          {/* The scanned meal can be corrected, then logged as eaten — replacing today's matching suggestion. */}
+          {mode === 'added' ? (
+            <p className="added-note">
+              <Check size={16} /> {t('addedToday')}
+            </p>
+          ) : (
+            <div className="row-gap wrap">
+              <button className="btn primary grow" onClick={() => setMode('edit')}>
+                <Plus size={16} /> {t('addToToday')}
+              </button>
+            </div>
+          )}
+        </ScanResult>
+      )}
+      {shown && !busy && mode === 'edit' && (
+        <MealEditor
+          meal={shown}
+          extra={{ source: 'scan', thumb: shown.thumb, description: shown.verdict }}
+          onCancel={() => setMode(null)}
+          onSave={(meal) => {
+            announceLogged(logMeal(meal), t);
+            setMode('added');
+          }}
+        />
+      )}
     </>
   );
 }

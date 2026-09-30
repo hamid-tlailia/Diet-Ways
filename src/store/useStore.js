@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { todayKey } from '../lib/dates';
+import { editMeal, mergeEaten, placeMeal, unlogMeal } from '../lib/meals';
 
 export { todayKey, activeStreak } from '../lib/dates';
 
@@ -122,13 +123,34 @@ export const useStore = create(
 
       setMealPlan: (plan) =>
         set((s) => {
-          // A new plan for a day resets that day's logged meals (the indexes refer to the old plan).
+          // A new plan for a day keeps what was already eaten, re-placed over the new suggestions.
           const cur = s.checkins[plan.date] ?? { mood: null, water: 0 };
-          const checkins = { ...s.checkins, [plan.date]: { ...cur, planned: plan.meals.length, meals: s.mealPlans[plan.date] ? [] : cur.meals ?? [] } };
-          const plans = { ...s.mealPlans, [plan.date]: plan };
+          const merged = mergeEaten(s.mealPlans[plan.date], s.mealPlans[plan.date] ? cur.meals ?? [] : [], plan);
+          const checkins = { ...s.checkins, [plan.date]: { ...cur, planned: merged.plan.meals.length, meals: merged.eaten } };
+          const plans = { ...s.mealPlans, [plan.date]: merged.plan };
           const keep = Object.keys(plans).sort().slice(-30);
           return { mealPlans: Object.fromEntries(keep.map((k) => [k, plans[k]])), checkins };
         }),
+
+      // Today's eaten meals (from a scan, a manual entry or an edited suggestion). `op` is a pure helper from lib/meals.
+      changeToday: (op) => {
+        let out = null;
+        set((s) => {
+          const k = todayKey();
+          const cur = s.checkins[k] ?? { mood: null, water: 0 };
+          // No plan yet: start an empty one (custom) that a later AI plan merges into.
+          const plan = s.mealPlans[k] ?? { date: k, meals: [], totals: { calories: 0, protein: 0, carbs: 0, fat: 0 }, tip: '', at: Date.now(), custom: true };
+          out = op(plan, cur.meals ?? []);
+          return {
+            mealPlans: { ...s.mealPlans, [k]: out.plan },
+            checkins: { ...s.checkins, [k]: { ...cur, meals: out.eaten, planned: out.plan.meals.length } },
+          };
+        });
+        return out;
+      },
+      logMeal: (meal) => get().changeToday((p, e) => placeMeal(p, e, meal)),
+      editTodayMeal: (i, meal) => get().changeToday((p, e) => editMeal(p, e, i, meal)),
+      unlogTodayMeal: (i) => get().changeToday((p, e) => unlogMeal(p, e, i)),
 
       addScan: (scan) => set((s) => ({ scans: [{ id: crypto.randomUUID(), at: Date.now(), ...scan }, ...s.scans].slice(0, 30) })),
 

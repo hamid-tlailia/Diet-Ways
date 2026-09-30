@@ -2851,3 +2851,124 @@ html[dir='rtl'] .dock-bubble {
   padding: 6px 10px;
   font-size: 0.78rem;
 }
+
+/* ───────────── Logged / edited meals ───────────── */
+.meal-thumb {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  object-fit: cover;
+  flex: none;
+}
+.logged-tag {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.meal-title .replaced {
+  display: block;
+  white-space: normal;
+  overflow: visible;
+  line-height: 1.6;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.meal-title .replaced s {
+  opacity: 0.8;
+}
+.meal-card.logged {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+.meal-actions {
+  margin-top: 10px;
+}
+.plan-total .budget {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.plan-total .budget b {
+  color: var(--ok);
+}
+.plan-total .budget.over b {
+  color: #ef4444;
+}
+.added-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  font-weight: 800;
+  color: var(--ok);
+}
+
+.meal-editor {
+  display: grid;
+  gap: 10px;
+}
+.meal-editor h3 {
+  margin: 0;
+}
+.meal-editor .field-label {
+  margin-top: 4px;
+}
+.me-items {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.me-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
+}
+.me-item .grow {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+.me-num {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+.me-num input {
+  width: 96px;
+  padding: 10px 8px;
+  padding-inline-end: 38px;
+  text-align: center;
+}
+.me-num small {
+  position: absolute;
+  inset-inline-end: 8px;
+  font-size: 0.66rem;
+  color: var(--muted);
+  pointer-events: none;
+}
+.me-num.big input {
+  width: 130px;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+.me-total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+}
+.icon-btn.sm {
+  width: 30px;
+  height: 30px;
+  flex: none;
+}
+

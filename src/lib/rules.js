@@ -121,6 +121,7 @@ export function planNotifications(state, meta = {}, ref = new Date(), now = Date
   for (const [i, m] of plan.entries()) {
     const [mh, mm] = (m.time || '').split(':').map(Number);
     if (!Number.isFinite(mh) || state.fastStart) continue; // while fasting, the break-fast reminder covers it
+    if ((state.checkins?.[day]?.meals ?? []).includes(i)) continue; // already eaten (or replaced by what was eaten)
     const diff = minutes - (mh * 60 + (mm || 0));
     if (diff >= 0 && diff <= 20 && once(`mealtime:${i}`)) {
       items.push({ key: `mealtime:${i}`, kind: 'mealtime', title: L(`${MEAL_EMOJI[m.type] ?? '🍽️'} حان وقت ${MEAL_AR[m.type] ?? 'الوجبة'}`, `${MEAL_EMOJI[m.type] ?? '🍽️'} Time for ${m.type ?? 'your meal'}`), body: L(`${m.name} — سجّلها بعد أن تأكلها ✓`, `${m.name} — log it once you've eaten ✓`) });
