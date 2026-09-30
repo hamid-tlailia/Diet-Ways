@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sun, Moon, SunMoon, Bell, Trash2, Sparkles, Utensils } from 'lucide-react';
+import { Sun, Moon, SunMoon, Bell, Trash2, Sparkles, Utensils, CircleDot, Pill } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useT, GOALS } from '../i18n';
 import { Segmented, toast, Reveal, Confirm, Sheet } from '../components/ui';
@@ -85,6 +85,18 @@ export default function Settings() {
           ]}
         />
         <p className="muted small hint-below">{t('autoHint')}</p>
+      </Reveal>
+
+      <Reveal className="card">
+        <h3>{t('dockStyle')}</h3>
+        <Segmented
+          value={s.dockStyle ?? 'notch'}
+          onChange={(v) => s.set({ dockStyle: v })}
+          options={[
+            { value: 'notch', label: t('dockNotch'), icon: <CircleDot size={15} /> },
+            { value: 'classic', label: t('dockClassic'), icon: <Pill size={15} /> },
+          ]}
+        />
       </Reveal>
 
       <Reveal className="card">

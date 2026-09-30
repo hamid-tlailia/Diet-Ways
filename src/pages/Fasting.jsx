@@ -180,6 +180,11 @@ export default function Fasting() {
                 <strong className="mono">{fmtDuration((nxt.from - hours) * 3.6e6)}</strong>
               </div>
             )}
+            {/* When the fast ends: full date and time of the goal. */}
+            <div>
+              <small>{t('endsAt')}</small>
+              <strong>{new Date(fastStart + fastGoal * 3.6e6).toLocaleString(lang === 'ar' ? 'ar' : 'en', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</strong>
+            </div>
           </div>
         )}
 

@@ -2972,3 +2972,83 @@ html[dir='rtl'] .dock-bubble {
   flex: none;
 }
 
+
+/* ───────────── Footer position: a little lower on screen ───────────── */
+.dock.bubble-dock {
+  bottom: max(8px, env(safe-area-inset-bottom));
+}
+
+/* ───────────── Classic dock (Settings → bottom bar style): the original glass capsule ───────────── */
+.dock.classic-dock {
+  position: fixed;
+  left: 50%;
+  right: auto;
+  bottom: max(8px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  margin: 0;
+  display: flex;
+  gap: 4px;
+  height: auto;
+  padding: 7px;
+  border-radius: 26px;
+  border: 1px solid var(--border);
+}
+.classic-dock .dock-item,
+.classic-dock .dock-item.on {
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border-radius: 20px;
+  color: var(--muted);
+}
+.classic-dock .dock-item.on {
+  color: var(--accent-ink);
+}
+.classic-dock .dock-item svg,
+.classic-dock .dock-item.on svg {
+  position: relative;
+  z-index: 1;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: inherit;
+}
+.classic-dock .dock-pill {
+  display: block;
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 6px 18px -6px var(--accent);
+}
+.classic-dock .dock-label,
+.classic-dock .dock-item.on .dock-label {
+  position: relative;
+  z-index: 1;
+  display: inline;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: inherit;
+  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  .dock.classic-dock {
+    gap: 2px;
+    padding: 6px;
+  }
+  .classic-dock .dock-item,
+  .classic-dock .dock-item.on {
+    padding: 11px 12px;
+  }
+}
+@media (max-width: 560px) {
+  .ring-meta {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

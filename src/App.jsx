@@ -213,6 +213,7 @@ export default function App() {
   const { t, lang } = useT();
   const theme = useResolvedTheme();
   const onboarded = useStore((s) => s.onboarded);
+  const dockStyle = useStore((s) => s.dockStyle ?? 'notch');
   const registerVisit = useStore((s) => s.registerVisit);
   // The current page lives in the URL hash (#fasting, #diets/keto) so reloads and the back button keep your place.
   const parseHash = () => {
@@ -293,28 +294,41 @@ export default function App() {
             </motion.div>
           </main>
 
-          <nav className="dock bubble-dock" aria-label="Main">
-            <DockShape index={TABS.findIndex((x) => x.id === tab)} count={TABS.length} rtl={lang === 'ar'} />
-            {TABS.map(({ id, icon: Icon, label }) => {
-              const on = tab === id;
-              return (
-                <button key={id} className={on ? 'dock-item on' : 'dock-item'} onClick={() => go(id)} aria-current={on ? 'page' : undefined} aria-label={t(label)}>
-                  {/* The active tab's icon rises into a floating circle that slides between tabs. */}
-                  {on && <motion.span layoutId="dock-bubble" className="dock-bubble" transition={{ type: 'spring', stiffness: 420, damping: 30 }} />}
-                  <motion.span className="dock-ico" animate={{ y: on ? -36 : 0 }} transition={{ type: 'spring', stiffness: 420, damping: 26 }}>
-                    <Icon size={22} strokeWidth={on ? 2.2 : 1.8} />
-                  </motion.span>
-                  <AnimatePresence>
-                    {on && (
-                      <motion.span className="dock-label" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                        {t(label)}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
+          {dockStyle === 'classic' ? (
+            // The original dock: a glass capsule where the active tab becomes a gradient pill with its label.
+            <nav className="dock classic-dock glass" aria-label="Main">
+              {TABS.map(({ id, icon: Icon, label }) => (
+                <button key={id} className={tab === id ? 'dock-item on' : 'dock-item'} onClick={() => go(id)} aria-current={tab === id ? 'page' : undefined} aria-label={t(label)}>
+                  {tab === id && <motion.span layoutId="dock-pill" className="dock-pill" transition={{ type: 'spring', stiffness: 400, damping: 32 }} />}
+                  <Icon size={20} strokeWidth={tab === id ? 2.4 : 1.8} />
+                  {tab === id && <span className="dock-label">{t(label)}</span>}
                 </button>
-              );
-            })}
-          </nav>
+              ))}
+            </nav>
+          ) : (
+            <nav className="dock bubble-dock" aria-label="Main">
+              <DockShape index={TABS.findIndex((x) => x.id === tab)} count={TABS.length} rtl={lang === 'ar'} />
+              {TABS.map(({ id, icon: Icon, label }) => {
+                const on = tab === id;
+                return (
+                  <button key={id} className={on ? 'dock-item on' : 'dock-item'} onClick={() => go(id)} aria-current={on ? 'page' : undefined} aria-label={t(label)}>
+                    {/* The active tab's icon rises into a floating circle that slides between tabs. */}
+                    {on && <motion.span layoutId="dock-bubble" className="dock-bubble" transition={{ type: 'spring', stiffness: 420, damping: 30 }} />}
+                    <motion.span className="dock-ico" animate={{ y: on ? -36 : 0 }} transition={{ type: 'spring', stiffness: 420, damping: 26 }}>
+                      <Icon size={22} strokeWidth={on ? 2.2 : 1.8} />
+                    </motion.span>
+                    <AnimatePresence>
+                      {on && (
+                        <motion.span className="dock-label" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                          {t(label)}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </button>
+                );
+              })}
+            </nav>
+          )}
         </div>
       )}
       <ToastHost />

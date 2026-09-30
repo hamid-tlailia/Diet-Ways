@@ -11,6 +11,7 @@ const initialState = {
   onboarded: false,
   lang: 'ar',
   themeMode: 'auto', // 'auto' | 'day' | 'night'
+  dockStyle: 'notch', // 'notch' (floating circle) | 'classic' (the original glass pill)
   name: '',
   goal: 'lose',
   dietId: null,
