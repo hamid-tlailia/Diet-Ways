@@ -2007,3 +2007,12 @@ select:focus {
 .num {
   font-variant-numeric: tabular-nums;
 }
+
+/* In-app toasts: near-opaque so the header never shows through. */
+.toast.glass {
+  background: var(--bg-2);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.5);
+}
