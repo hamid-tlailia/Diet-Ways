@@ -1,5 +1,5 @@
 // Diet Ways service worker: offline app shell + push notifications.
-const CACHE = 'diet-ways-v5';
+const CACHE = 'diet-ways-v6';
 const SHELL = ['/', '/index.html', '/favicon.svg', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/badge-96.png'];
 
 self.addEventListener('install', (e) => {
