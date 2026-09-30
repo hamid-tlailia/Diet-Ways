@@ -2219,3 +2219,84 @@ select:focus {
   font-size: 0.78rem;
   font-weight: 500;
 }
+
+/* ───────────── Dock v3: flat bar, active icon rises into a floating circle ───────────── */
+.dock.bubble-dock {
+  left: 14px;
+  right: 14px;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  transform: none;
+  max-width: 520px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0;
+  height: 64px;
+  padding: 0 6px;
+  border-radius: 22px;
+  overflow: visible;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  box-shadow: 0 14px 36px -12px rgba(0, 0, 0, 0.35);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.bubble-dock .dock-item,
+.bubble-dock .dock-item.on {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0;
+  border-radius: 0;
+  color: var(--muted);
+  background: none;
+}
+.bubble-dock .dock-item.on {
+  color: var(--accent);
+}
+.bubble-dock .dock-ico {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+}
+.bubble-dock .dock-item svg,
+.bubble-dock .dock-item.on svg {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: inherit;
+}
+.dock-bubble {
+  position: absolute;
+  z-index: 1;
+  top: -24px;
+  left: 50%;
+  width: 58px;
+  height: 58px;
+  margin-inline-start: -29px;
+  border-radius: 50%;
+  background: var(--bg-2);
+  /* ring in the page colour creates the "cut-out" look where the circle meets the bar */
+  box-shadow: 0 0 0 6px var(--bg), 0 10px 22px -8px rgba(0, 0, 0, 0.35);
+}
+html[dir='rtl'] .dock-bubble {
+  left: auto;
+  right: 50%;
+  margin-inline-start: -29px;
+}
+.bubble-dock .dock-label,
+.bubble-dock .dock-item.on .dock-label {
+  position: absolute;
+  bottom: 9px;
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { House, LayoutGrid, Timer, Sparkles, Utensils, Settings as SettingsIcon, Sun, Moon, SunMoon, Languages } from 'lucide-react';
 import { useStore } from './store/useStore';
 import { useT, tr } from './i18n';
@@ -230,14 +230,26 @@ export default function App() {
             </motion.div>
           </main>
 
-          <nav className="dock glass" aria-label="Main">
-            {TABS.map(({ id, icon: Icon, label }) => (
-              <button key={id} className={tab === id ? 'dock-item on' : 'dock-item'} onClick={() => go(id)} aria-current={tab === id ? 'page' : undefined}>
-                {tab === id && <motion.span layoutId="dock-pill" className="dock-pill" transition={{ type: 'spring', stiffness: 400, damping: 32 }} />}
-                <Icon size={20} strokeWidth={tab === id ? 2.4 : 1.8} />
-                <span className="dock-label">{t(label)}</span>
-              </button>
-            ))}
+          <nav className="dock bubble-dock" aria-label="Main">
+            {TABS.map(({ id, icon: Icon, label }) => {
+              const on = tab === id;
+              return (
+                <button key={id} className={on ? 'dock-item on' : 'dock-item'} onClick={() => go(id)} aria-current={on ? 'page' : undefined} aria-label={t(label)}>
+                  {/* The active tab's icon rises into a floating circle that slides between tabs. */}
+                  {on && <motion.span layoutId="dock-bubble" className="dock-bubble" transition={{ type: 'spring', stiffness: 420, damping: 30 }} />}
+                  <motion.span className="dock-ico" animate={{ y: on ? -24 : 0 }} transition={{ type: 'spring', stiffness: 420, damping: 26 }}>
+                    <Icon size={22} strokeWidth={on ? 2.2 : 1.8} />
+                  </motion.span>
+                  <AnimatePresence>
+                    {on && (
+                      <motion.span className="dock-label" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                        {t(label)}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </button>
+              );
+            })}
           </nav>
         </div>
       )}
