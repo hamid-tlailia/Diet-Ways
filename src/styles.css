@@ -2300,3 +2300,49 @@ html[dir='rtl'] .dock-bubble {
   color: var(--accent);
   white-space: nowrap;
 }
+
+/* ───────────── Dock v4: real notch ───────────── */
+.dock.bubble-dock {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  /* drop-shadow follows the masked shape, so the notch has a soft edge too */
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.18));
+}
+.dock-bg {
+  --x: 10%;
+  --r: 34px;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 22px;
+  background: var(--bg-2);
+  -webkit-mask: radial-gradient(circle var(--r) at var(--x) 0, transparent calc(var(--r) - 0.5px), #000 var(--r));
+  mask: radial-gradient(circle var(--r) at var(--x) 0, transparent calc(var(--r) - 0.5px), #000 var(--r));
+}
+/* Grid runs right-to-left in Arabic, so the notch position mirrors. */
+html[dir='rtl'] .dock-bg {
+  -webkit-mask: radial-gradient(circle var(--r) at calc(100% - var(--x)) 0, transparent calc(var(--r) - 0.5px), #000 var(--r));
+  mask: radial-gradient(circle var(--r) at calc(100% - var(--x)) 0, transparent calc(var(--r) - 0.5px), #000 var(--r));
+}
+.bubble-dock .dock-item {
+  z-index: 1;
+}
+.dock-bubble {
+  top: -27px;
+  width: 54px;
+  height: 54px;
+  margin-inline-start: -27px;
+  box-shadow: 0 8px 18px -6px rgba(0, 0, 0, 0.3);
+}
+html[dir='rtl'] .dock-bubble {
+  margin-inline-start: -27px;
+}
+.bubble-dock .dock-label,
+.bubble-dock .dock-item.on .dock-label {
+  bottom: 7px;
+}
+/* The dock is opaque now; no fade, so page content shows through the notch. */
+.shell::after {
+  display: none;
+}

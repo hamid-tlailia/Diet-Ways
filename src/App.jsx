@@ -231,13 +231,21 @@ export default function App() {
           </main>
 
           <nav className="dock bubble-dock" aria-label="Main">
+            {/* Bar background with a real transparent notch cut where the active tab's circle sits
+                (no notch on Settings, which isn't a dock tab). */}
+            <motion.span
+              className="dock-bg"
+              initial={false}
+              animate={{ '--x': `${((Math.max(0, TABS.findIndex((x) => x.id === tab)) + 0.5) / TABS.length) * 100}%`, '--r': TABS.some((x) => x.id === tab) ? '34px' : '0px' }}
+              transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+            />
             {TABS.map(({ id, icon: Icon, label }) => {
               const on = tab === id;
               return (
                 <button key={id} className={on ? 'dock-item on' : 'dock-item'} onClick={() => go(id)} aria-current={on ? 'page' : undefined} aria-label={t(label)}>
                   {/* The active tab's icon rises into a floating circle that slides between tabs. */}
                   {on && <motion.span layoutId="dock-bubble" className="dock-bubble" transition={{ type: 'spring', stiffness: 420, damping: 30 }} />}
-                  <motion.span className="dock-ico" animate={{ y: on ? -24 : 0 }} transition={{ type: 'spring', stiffness: 420, damping: 26 }}>
+                  <motion.span className="dock-ico" animate={{ y: on ? -26 : 0 }} transition={{ type: 'spring', stiffness: 420, damping: 26 }}>
                     <Icon size={22} strokeWidth={on ? 2.2 : 1.8} />
                   </motion.span>
                   <AnimatePresence>
