@@ -142,8 +142,26 @@ export default function App() {
   const theme = useResolvedTheme();
   const onboarded = useStore((s) => s.onboarded);
   const registerVisit = useStore((s) => s.registerVisit);
-  const [tab, setTab] = useState('home');
-  const [dietDetail, setDietDetail] = useState(null);
+  // The current page lives in the URL hash (#fasting, #diets/keto) so reloads and the back button keep your place.
+  const parseHash = () => {
+    const [id, diet] = window.location.hash.slice(1).split('/');
+    return { tab: TABS.some((x) => x.id === id) ? id : 'home', diet: diet || null };
+  };
+  const [route, setRoute] = useState(parseHash);
+  const { tab, diet: dietDetail } = route;
+  useEffect(() => {
+    const onPop = () => setRoute(parseHash());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const navigate = (id, diet = null) => {
+    const hash = `#${id}${diet ? `/${diet}` : ''}`;
+    if (window.location.hash !== hash) window.history.pushState(null, '', hash);
+    setRoute({ tab: id, diet });
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+  const setDietDetail = (diet) => navigate('diets', diet);
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -163,11 +181,7 @@ export default function App() {
   useLocalNotifications();
   usePushBridge();
 
-  const go = (id, opts = {}) => {
-    setTab(id);
-    setDietDetail(opts.diet ?? null);
-    window.scrollTo({ top: 0, behavior: 'instant' });
-  };
+  const go = (id, opts = {}) => navigate(id, opts.diet ?? null);
 
   const pages = {
     home: <Home go={go} theme={theme} />,

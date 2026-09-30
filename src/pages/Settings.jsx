@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Sun, Moon, SunMoon, Bell, Trash2, Sparkles, Utensils } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useT, GOALS } from '../i18n';
-import { Segmented, toast, Reveal, Confirm } from '../components/ui';
+import { Segmented, toast, Reveal, Confirm, Sheet } from '../components/ui';
+import Questionnaire from '../components/Questionnaire';
 import { requestPermission } from '../lib/notify';
 import { enablePush, disablePush } from '../lib/push';
 
@@ -11,6 +12,7 @@ export default function Settings() {
   const s = useStore();
   const [busy, setBusy] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [editMeals, setEditMeals] = useState(false);
   const toggleNotif = async () => {
     setBusy(true);
     try {
@@ -116,11 +118,9 @@ export default function Settings() {
           <Sparkles size={18} /> {t('aiSettings')}
         </h3>
         <p className="muted small">{t('apiKeyHint')}</p>
-        {s.mealProfile?.done && (
-          <button className="btn ghost" onClick={() => s.set({ mealProfile: { ...s.mealProfile, done: false } })}>
-            <Utensils size={16} /> {t('editMealProfile')}
-          </button>
-        )}
+        <button className="btn ghost" onClick={() => setEditMeals(true)}>
+          <Utensils size={16} /> {s.mealProfile?.done ? t('editMealProfile') : t('fillMealProfile')}
+        </button>
       </Reveal>
 
       <button
@@ -129,6 +129,14 @@ export default function Settings() {
       >
         <Trash2 size={16} /> {t('resetData')}
       </button>
+      <Sheet open={editMeals} onClose={() => setEditMeals(false)}>
+        <Questionnaire
+          onSaved={() => {
+            setEditMeals(false);
+            toast({ title: '✓', body: t('mealProfileSaved') });
+          }}
+        />
+      </Sheet>
       <Confirm open={confirmReset} onClose={() => setConfirmReset(false)} onConfirm={() => s.reset()} danger title={t('confirmReset')} body={t('resetBody')} confirmLabel={t('resetData')} />
     </div>
   );

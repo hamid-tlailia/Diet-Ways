@@ -2117,3 +2117,18 @@ select:focus {
   justify-content: space-between;
   gap: 10px;
 }
+
+/* Breathing room between the timer card and the stages accordion. */
+.fasting .accordion {
+  margin-top: 16px;
+}
+.ob-q {
+  width: min(560px, 100%);
+}
+.sheet .questionnaire {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 8px 0 0;
+  backdrop-filter: none;
+}

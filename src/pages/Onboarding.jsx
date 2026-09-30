@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import { useT, GOALS } from '../i18n';
 import { DIETS } from '../data/diets';
+import Questionnaire from '../components/Questionnaire';
 
 export default function Onboarding() {
   const { t, lang } = useT();
@@ -13,11 +14,21 @@ export default function Onboarding() {
   const [name, setName] = useState('');
   const [goal, setGoal] = useState('lose');
   const [dietId, setDietId] = useState('fasting');
+  const [phase, setPhase] = useState('intro'); // 'intro' → 'meals' (nutrition questionnaire)
 
   const finish = () => {
     track('diets', dietId, 3);
     complete({ name: name.trim(), goal, dietId });
   };
+
+  if (phase === 'meals')
+    return (
+      <div className="onboarding">
+        <div className="ob-card ob-q">
+          <Questionnaire onSaved={finish} onSkip={finish} />
+        </div>
+      </div>
+    );
 
   const steps = [
     <div key="0" className="ob-step">
@@ -87,8 +98,8 @@ export default function Onboarding() {
               {t('skip')}
             </button>
           )}
-          <button className="btn primary" onClick={() => (step < steps.length - 1 ? setStep(step + 1) : finish())}>
-            {step < steps.length - 1 ? t('next') : t('letsGo')}
+          <button className="btn primary" onClick={() => (step < steps.length - 1 ? setStep(step + 1) : setPhase('meals'))}>
+            {t('next')}
           </button>
         </div>
       </div>

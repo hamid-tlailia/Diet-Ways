@@ -16,7 +16,8 @@ function Ring({ hours, goal, running, onStage }) {
   const { t } = useT();
   const pct = running ? Math.min(1, hours / goal) : 0;
   const stage = stageAt(hours);
-  const marks = STAGES.filter((s) => s.from > 0 && s.from < goal);
+  // Only the processes that happen within the chosen fasting hours (the goal's own stage sits at the top).
+  const marks = STAGES.filter((s) => s.from > 0 && s.from <= goal);
 
   return (
     <div className="ring-wrap">
@@ -115,10 +116,12 @@ export default function Fasting() {
   const [open, setOpen] = useState(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [stagesOpen, setStagesOpen] = useState(false);
+  // Stages covered by the chosen protocol (or reached so far, if the fast runs past its goal).
 
   const running = !!fastStart;
   const hours = running ? (now - fastStart) / 3.6e6 : 0;
   const nxt = running ? nextStage(hours) : null;
+  const visibleStages = STAGES.filter((s) => s.from <= Math.max(fastGoal, hours));
   const remainingMs = Math.max(0, fastGoal * 3.6e6 - (now - (fastStart ?? now)));
 
   const openStage = (s) => {
@@ -191,7 +194,7 @@ export default function Fasting() {
           <span className="accordion-title">
             <strong>{t('stages')}</strong>
             <small className="muted">
-              {STAGES.length} · {running ? `${t('current')}: ${t(stageAt(hours).name)}` : t('tapStage')}
+              {visibleStages.length} · {running ? `${t('current')}: ${t(stageAt(hours).name)}` : t('tapStage')}
             </small>
           </span>
           <ChevronDown size={20} className="chev" />
@@ -200,7 +203,7 @@ export default function Fasting() {
           {stagesOpen && (
             <motion.div className="accordion-body" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}>
               <div className="stage-list">
-                {STAGES.map((s) => {
+                {visibleStages.map((s) => {
                   const status = !running ? '' : hours >= s.from ? (stageAt(hours).id === s.id ? 'current' : 'reached') : '';
                   return (
                     <button key={s.id} className={`stage-card ${status}`} style={{ '--c': s.color }} onClick={() => openStage(s)}>
