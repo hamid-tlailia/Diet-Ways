@@ -130,23 +130,27 @@ function usePushBridge() {
 // (A path works in every mobile browser, unlike CSS masks.)
 const DOCK_H = 64;
 const DOCK_PAD = 14; // matches .bubble-dock inline padding
-const NOTCH_R = 33; // circle radius 27 + 6px gap
+const CIRCLE_R = 27;
+const LIFT = 4; // circle centre sits this far above the bar's top edge
+const NOTCH_R = CIRCLE_R + 6; // notch shares the circle's centre, leaving an even 6px gap all round
 const CORNER = 22;
 
 function dockPath(w, x) {
   const R = NOTCH_R;
   const f = 5; // soft fillet where the notch meets the top edge
   const H = DOCK_H;
+  const dx = Math.sqrt(R * R - LIFT * LIFT); // where the notch circle crosses the top edge
+  const ey = Math.sqrt(R * R - (dx - 1) ** 2) - LIFT; // arc point just inside the edge, for the fillets
   // Top corners shrink when the notch sits near an edge, so the notch always centres on its tab.
-  const rl = Math.max(0, Math.min(CORNER, x - R - f));
-  const rr = Math.max(0, Math.min(CORNER, w - x - R - f));
+  const rl = Math.max(0, Math.min(CORNER, x - dx - f));
+  const rr = Math.max(0, Math.min(CORNER, w - x - dx - f));
   const r = CORNER;
   return [
     `M${rl},0`,
-    `H${x - R - f}`,
-    `Q${x - R},0 ${x - R + 1},${f * 0.6}`,
-    `A${R},${R} 0 0 0 ${x + R - 1},${f * 0.6}`,
-    `Q${x + R},0 ${x + R + f},0`,
+    `H${x - dx - f}`,
+    `Q${x - dx},0 ${x - dx + 1},${ey}`,
+    `A${R},${R} 0 0 0 ${x + dx - 1},${ey}`,
+    `Q${x + dx},0 ${x + dx + f},0`,
     `H${w - rr}`,
     `A${rr},${rr} 0 0 1 ${w},${rr}`,
     `V${H - r}`,
@@ -293,7 +297,7 @@ export default function App() {
                 <button key={id} className={on ? 'dock-item on' : 'dock-item'} onClick={() => go(id)} aria-current={on ? 'page' : undefined} aria-label={t(label)}>
                   {/* The active tab's icon rises into a floating circle that slides between tabs. */}
                   {on && <motion.span layoutId="dock-bubble" className="dock-bubble" transition={{ type: 'spring', stiffness: 420, damping: 30 }} />}
-                  <motion.span className="dock-ico" animate={{ y: on ? -32 : 0 }} transition={{ type: 'spring', stiffness: 420, damping: 26 }}>
+                  <motion.span className="dock-ico" animate={{ y: on ? -36 : 0 }} transition={{ type: 'spring', stiffness: 420, damping: 26 }}>
                     <Icon size={22} strokeWidth={on ? 2.2 : 1.8} />
                   </motion.span>
                   <AnimatePresence>

@@ -2382,3 +2382,17 @@ html[dir='rtl'] .dock-bubble {
 .dock.bubble-dock {
   padding: 0 14px;
 }
+/* Active circle: raised 4px (concentric with the notch), filled with the accent, white icon. */
+.dock-bubble,
+html[dir='rtl'] .dock-bubble {
+  top: -31px;
+  border: 0;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+.bubble-dock .dock-item.on .dock-ico {
+  color: var(--accent-ink);
+}
+.dock-bubble,
+html[dir='rtl'] .dock-bubble {
+  background: var(--accent);
+}
