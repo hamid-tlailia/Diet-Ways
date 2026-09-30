@@ -22,6 +22,11 @@ export async function requestMealPlan(state, onRetry) {
   return (await postAI('/api/meals', { state: snapshot(state) }, onRetry)).plan;
 }
 
+export async function requestShoppingList(state, onRetry) {
+  const plans = Object.values(state.mealPlans ?? {}).sort((a, b) => (a.date < b.date ? 1 : -1));
+  return (await postAI('/api/shopping', { state: snapshot(state), plans: plans.slice(0, 7) }, onRetry)).list;
+}
+
 let pending = null;
 // Makes today's plan once (deduped across callers) when the questionnaire is done and none exists yet.
 export function ensureTodayPlan(getState, save) {

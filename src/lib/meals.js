@@ -112,6 +112,31 @@ export function mealPlanPrompt(state, lang, day, recentNames = []) {
   };
 }
 
+// A week of groceries for the user's diet, based on the plans they've been getting.
+export function shoppingPrompt(state, lang, recentPlans = []) {
+  const language = lang === 'en' ? 'English' : 'Arabic';
+  return {
+    system:
+      'You are a dietitian writing a practical weekly grocery list for one person. It must cover 7 days of meals for the user\'s diet and goal, ' +
+      'build on the dishes in their recent meal plans, respect allergies strictly (never list an allergen) and health conditions, prefer their favourite foods, ' +
+      'and use ingredients easy to find in Arab and Mediterranean supermarkets. Give realistic weekly quantities (grams, pieces, litres). ' +
+      'Group items by store section, 5–7 sections, 3–10 items each, no duplicates. ' +
+      `Write every text field in ${language}. Respond with JSON only, matching this shape: ` +
+      '{"groups":[{"name":"","emoji":"","items":[{"name":"","qty":""}]}],"tip":""}',
+    user: `Recent meal plans:\n${JSON.stringify(recentPlans.map((p) => p.meals.map((m) => ({ name: m.name, ingredients: m.ingredients }))))}\nUser profile:\n${JSON.stringify(describeProfile(state), null, 2)}`,
+  };
+}
+
+export function normalizeShopping(raw) {
+  const groups = (Array.isArray(raw?.groups) ? raw.groups : []).slice(0, 8).map((g) => ({
+    name: str(g.name),
+    emoji: str(g.emoji).slice(0, 4),
+    items: (Array.isArray(g.items) ? g.items : []).slice(0, 12).map((it) => ({ name: str(it.name), qty: str(it.qty), done: false })).filter((it) => it.name),
+  })).filter((g) => g.items.length);
+  if (!groups.length) throw new Error('empty list');
+  return { groups, tip: str(raw.tip), at: Date.now() };
+}
+
 export function scanPrompt(state, lang) {
   const language = lang === 'en' ? 'English' : 'Arabic';
   return {

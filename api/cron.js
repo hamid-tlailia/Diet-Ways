@@ -46,7 +46,7 @@ export default async function handler(req, res) {
           payload.body = plan.meals.map((m) => `${MEAL_TYPES[m.type].emoji} ${m.name}`).join(' · ');
           inbox = { id: payload.id, at: payload.at, kind: 'meals', plan };
         }
-        if (item.kind === 'coach' || item.kind === 'insight') {
+        if (item.kind === 'coach' || item.kind === 'insight' || item.kind === 'weekly') {
           inbox = { id: payload.id, at: payload.at, kind: item.kind, text: payload.body, source: payload.source ?? 'local', dietId: state.dietId };
         }
 

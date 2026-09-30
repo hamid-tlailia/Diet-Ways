@@ -41,6 +41,13 @@ const initialState = {
   mealProfile: null, // questionnaire answers; { done: true, ... } once completed
   mealPlans: {}, // dayKey -> AI plan
   scans: [], // { id, at, thumb, ...analysis }
+  shopping: null, // { at, groups: [{ name, emoji, items: [{ name, qty, done }] }] }
+
+  // Progress
+  weights: [], // { date: dayKey, kg }
+  badges: {}, // badgeId -> unlocked at (ms)
+  badgeQueue: [], // unlocked but not yet celebrated
+  badgesInit: false,
 };
 
 export const useStore = create(
@@ -109,6 +116,35 @@ export const useStore = create(
         }),
 
       addScan: (scan) => set((s) => ({ scans: [{ id: crypto.randomUUID(), at: Date.now(), ...scan }, ...s.scans].slice(0, 30) })),
+
+      logWeight: (kg) =>
+        set((s) => {
+          const date = todayKey();
+          const weights = [...s.weights.filter((w) => w.date !== date), { date, kg }].sort((a, b) => (a.date < b.date ? -1 : 1));
+          return { weights: weights.slice(-60) };
+        }),
+
+      // `silent` records badges without celebrating (first run, so past progress doesn't flood the screen).
+      unlockBadges: (ids, silent = false) =>
+        set((s) => {
+          const fresh = ids.filter((id) => !s.badges[id]);
+          if (!fresh.length) return silent ? { badgesInit: true } : {};
+          const now = Date.now();
+          return {
+            badges: { ...s.badges, ...Object.fromEntries(fresh.map((id) => [id, now])) },
+            badgeQueue: silent ? s.badgeQueue : [...s.badgeQueue, ...fresh],
+            badgesInit: true,
+          };
+        }),
+
+      celebrated: () => set((s) => ({ badgeQueue: s.badgeQueue.slice(1) })),
+
+      toggleShopping: (g, i) =>
+        set((s) => {
+          if (!s.shopping) return {};
+          const groups = s.shopping.groups.map((grp, gi) => (gi !== g ? grp : { ...grp, items: grp.items.map((it, ii) => (ii !== i ? it : { ...it, done: !it.done })) }));
+          return { shopping: { ...s.shopping, groups } };
+        }),
 
       reset: () => set({ ...initialState }),
     }),

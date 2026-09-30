@@ -6,7 +6,7 @@ import { useT } from '../i18n';
 import { Segmented, stagger, toast } from '../components/ui';
 import { MEAL_TYPES } from '../lib/meals';
 import Questionnaire from '../components/Questionnaire';
-import { ensureTodayPlan, requestMealPlan, scanMeal } from '../lib/mealsApi';
+import { ensureTodayPlan, requestMealPlan, requestShoppingList, scanMeal } from '../lib/mealsApi';
 
 function Macros({ p, c, f, fiber }) {
   const { t } = useT();
@@ -265,6 +265,110 @@ function Scan() {
   );
 }
 
+// Weekly grocery list built from the user's plans; refreshed automatically once a week.
+function Shopping() {
+  const { t } = useT();
+  const list = useStore((s) => s.shopping);
+  const set = useStore((s) => s.set);
+  const toggle = useStore((s) => s.toggleShopping);
+  const [busy, setBusy] = useState(false);
+  const stale = !list || Date.now() - list.at > 7 * 864e5;
+
+  const make = async () => {
+    setBusy(true);
+    try {
+      set({ shopping: await requestShoppingList(useStore.getState(), () => toast({ title: '⏳', body: t('aiRetrying'), duration: 3000 })) });
+    } catch (e) {
+      toast({ title: '⚠️', body: t({ rate: 'rateLimited', busy: 'aiBusy' }[e.message] ?? 'shopFailed') });
+    } finally {
+      setBusy(false);
+    }
+  };
+  useEffect(() => {
+    if (stale) make();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const share = async () => {
+    const text = list.groups.map((g) => `${g.emoji} ${g.name}\n${g.items.map((i) => `${i.done ? '✓' : '•'} ${i.name}${i.qty ? ` — ${i.qty}` : ''}`).join('\n')}`).join('\n\n');
+    try {
+      if (navigator.share) await navigator.share({ title: t('shopTitle'), text });
+      else {
+        await navigator.clipboard.writeText(text);
+        toast({ title: '✓', body: t('copied') });
+      }
+    } catch {
+      /* user closed the share sheet */
+    }
+  };
+
+  if (busy && !list)
+    return (
+      <section className="card center loading-card">
+        <div className="orb small-orb">🛒</div>
+        <p>{t('shopLoading')}</p>
+        <div className="skeleton" />
+        <div className="skeleton" />
+      </section>
+    );
+  if (!list)
+    return (
+      <section className="card center">
+        <p>{t('shopFailed')}</p>
+        <button className="btn primary" onClick={make}>
+          <RefreshCw size={16} /> {t('retry')}
+        </button>
+      </section>
+    );
+
+  const all = list.groups.flatMap((g) => g.items);
+  const done = all.filter((i) => i.done).length;
+  return (
+    <>
+      <section className="card shop-head">
+        <div className="row-between">
+          <strong>
+            🛒 {t('shopTitle')}
+          </strong>
+          <span className="num muted">
+            {done}/{all.length}
+          </span>
+        </div>
+        <div className="bar">
+          <motion.span animate={{ width: `${(done / all.length) * 100}%` }} style={{ background: 'var(--accent)' }} />
+        </div>
+        {list.tip && <p className="muted small">💡 {list.tip}</p>}
+        <div className="row-gap">
+          <button className="btn ghost grow" onClick={share}>
+            {t('shareList')}
+          </button>
+          <button className="btn ghost grow" onClick={make} disabled={busy}>
+            <RefreshCw size={16} className={busy ? 'spin' : ''} /> {t('newList')}
+          </button>
+        </div>
+      </section>
+      {list.groups.map((g, gi) => (
+        <section key={gi} className="card shop-group">
+          <h3>
+            <span>{g.emoji}</span> {g.name}
+          </h3>
+          <ul>
+            {g.items.map((it, ii) => (
+              <li key={ii}>
+                <button className={it.done ? 'shop-item done' : 'shop-item'} onClick={() => toggle(gi, ii)} aria-pressed={it.done}>
+                  <span className="shop-check">{it.done ? '✓' : ''}</span>
+                  <span className="shop-name">{it.name}</span>
+                  {it.qty && <small className="muted">{it.qty}</small>}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </>
+  );
+}
+
 function History() {
   const { t, lang } = useT();
   const mealPlans = useStore((s) => s.mealPlans);
@@ -341,12 +445,14 @@ export default function Meals() {
             options={[
               { value: 'today', label: t('today') },
               { value: 'scan', label: t('scan') },
+              { value: 'shop', label: t('shopTab') },
               { value: 'history', label: t('history') },
             ]}
           />
           <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="meals-body">
             {tab === 'today' && <Today />}
             {tab === 'scan' && <Scan />}
+            {tab === 'shop' && <Shopping />}
             {tab === 'history' && <History />}
           </motion.div>
         </>

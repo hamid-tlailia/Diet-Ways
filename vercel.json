@@ -10,6 +10,9 @@
     },
     "api/scan.js": {
       "maxDuration": 90
+    },
+    "api/shopping.js": {
+      "maxDuration": 90
     }
   },
   "headers": [

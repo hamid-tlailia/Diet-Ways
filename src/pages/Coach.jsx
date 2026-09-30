@@ -7,6 +7,8 @@ import { STAGES } from '../data/fasting';
 import { buildProfile, buildInsights } from '../lib/coach';
 import MessageList from '../components/MessageList';
 import { stagger } from '../components/ui';
+import { WeightCard, WeeklySummary } from '../components/Progress';
+import { BadgeGrid } from '../components/Badges';
 
 const SECTION_LABEL = { overview: 'overview', method: 'method', foods: 'foods', exercises: 'exercises' };
 
@@ -57,6 +59,14 @@ export default function Coach() {
       </motion.section>
 
       <motion.section {...stagger(1)} className="card">
+        <WeeklySummary />
+      </motion.section>
+
+      <motion.section {...stagger(1)} className="card weight-card">
+        <WeightCard />
+      </motion.section>
+
+      <motion.section {...stagger(1)} className="card">
         <h3>
           <Sparkles size={18} /> {t('insightTitle')}
         </h3>
@@ -91,6 +101,10 @@ export default function Coach() {
       <motion.section {...stagger(3)} className="card">
         <h3>{t('messages')}</h3>
         <MessageList messages={state.messages} />
+      </motion.section>
+
+      <motion.section {...stagger(3)} className="card">
+        <BadgeGrid />
       </motion.section>
     </div>
   );

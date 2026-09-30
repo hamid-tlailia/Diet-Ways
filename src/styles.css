@@ -2499,3 +2499,261 @@ html[dir='rtl'] .dock-bubble {
     padding-top: max(20px, env(safe-area-inset-top));
   }
 }
+
+/* ───────────── Weekly summary ───────────── */
+.wk-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 10px 0 6px;
+}
+.wk-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 4px;
+  border-radius: 16px;
+  background: var(--surface);
+  text-align: center;
+}
+.wk-tile span {
+  font-size: 1.2rem;
+}
+.wk-tile strong {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+.wk-tile small {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+/* ───────────── Weight ───────────── */
+.weight-card {
+  display: grid;
+  gap: 10px;
+}
+.weight-hero {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+.weight-hero strong {
+  font-size: 2rem;
+  font-weight: 800;
+}
+.weight-hero small {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.weight-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.weight-delta.down {
+  color: var(--ok);
+}
+.weight-chart {
+  position: relative;
+  padding-top: 34px;
+}
+.weight-chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+.wc-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.wc-axis {
+  fill: var(--muted);
+  font-size: 10px;
+  font-family: inherit;
+}
+.wc-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.wc-cross {
+  stroke: var(--muted);
+  stroke-opacity: 0.4;
+  stroke-dasharray: 3 3;
+}
+.wc-dot {
+  fill: var(--bg-2);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.wc-dot.on {
+  fill: var(--accent);
+  stroke: var(--bg-2);
+}
+.wc-hit {
+  cursor: pointer;
+}
+.wc-tip {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  padding: 4px 10px;
+  border-radius: 10px;
+  white-space: nowrap;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+.wc-tip small {
+  color: var(--muted);
+}
+
+/* ───────────── Badges ───────────── */
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.badge-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px;
+  border-radius: 18px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  opacity: 0.55;
+}
+.badge-item.on {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+.badge-emoji {
+  font-size: 1.8rem;
+}
+.badge-item strong {
+  font-size: 0.78rem;
+}
+.badge-item small {
+  font-size: 0.66rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.celebrate {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 6, 23, 0.55);
+  backdrop-filter: blur(6px);
+}
+.confetti {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  pointer-events: none;
+}
+.confetti i {
+  position: absolute;
+  width: 9px;
+  height: 14px;
+  border-radius: 3px;
+}
+.celebrate-card {
+  position: relative;
+  width: min(340px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 28px 22px 22px;
+  text-align: center;
+  border-radius: 30px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.5);
+}
+.celebrate-emoji {
+  font-size: 4rem;
+  line-height: 1.1;
+}
+.celebrate-card small {
+  color: var(--accent);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.celebrate-card h2 {
+  margin: 0;
+}
+.celebrate-card .btn {
+  margin-top: 10px;
+  width: 100%;
+}
+
+/* ───────────── Shopping ───────────── */
+.shop-head {
+  display: grid;
+  gap: 10px;
+}
+.shop-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.shop-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  text-align: start;
+  background: var(--surface);
+  transition: opacity 0.2s;
+}
+.shop-check {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fff;
+  border: 2px solid var(--border);
+}
+.shop-item.done .shop-check {
+  background: var(--ok);
+  border-color: var(--ok);
+}
+.shop-name {
+  flex: 1;
+}
+.shop-item.done {
+  opacity: 0.55;
+}
+.shop-item.done .shop-name {
+  text-decoration: line-through;
+}

@@ -4,6 +4,7 @@ import { stageAt } from '../data/fasting.js';
 import { tr } from '../i18n/strings.js';
 import { todayKey } from './dates.js';
 import { buildProfile, buildInsights } from './coach.js';
+import { weeklyStats } from './progress.js';
 
 export const isQuiet = (h) => h >= 23 || h < 7;
 
@@ -26,6 +27,17 @@ const fmtHours = (h, lang) => {
   if (lang === 'ar') return whole >= 1 ? `${whole} س${mins ? ` و${mins} د` : ''}` : `${mins} دقيقة`;
   return whole >= 1 ? `${whole}h${mins ? ` ${mins}m` : ''}` : `${mins} min`;
 };
+
+const MEAL_EMOJI = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍏' };
+const MEAL_AR = { breakfast: 'الفطور', lunch: 'الغداء', dinner: 'العشاء', snack: 'الوجبة الخفيفة' };
+
+// 30 minutes before the goal: suggest the first meal of today's plan to break the fast.
+function breakFastBody(state, day, L) {
+  const first = state.todayMeals?.date === day ? state.todayMeals.meals[0] : null;
+  return first
+    ? L(`بعد 30 دقيقة تكسر صيامك 🍽️ اقتراحنا: ${first.name}`, `30 minutes until you break your fast 🍽️ Suggestion: ${first.name}`)
+    : L('بعد 30 دقيقة تكسر صيامك 🍽️ ابدأ بالماء ثم بروتين وخضار.', '30 minutes until you break your fast 🍽️ Start with water, then protein and veg.');
+}
 
 export function planNotifications(state, meta = {}, ref = new Date(), now = Date.now()) {
   const lang = state.lang === 'en' ? 'en' : 'ar';
@@ -55,6 +67,7 @@ export function planNotifications(state, meta = {}, ref = new Date(), now = Date
       goal >= 8 && { id: 'half', at: goal / 2 },
       goal >= 10 && { id: 'left3', at: goal - 3 },
       goal >= 4 && { id: 'left1', at: goal - 1 },
+      goal >= 2 && { id: 'break', at: goal - 0.5 },
     ].filter(Boolean);
 
     if (next.fastStart !== state.fastStart) {
@@ -85,6 +98,7 @@ export function planNotifications(state, meta = {}, ref = new Date(), now = Date
             half: L(`نصف الطريق! مضت ${fmtHours(hours, lang)} وأنت في «${t(stage.name)}». استمر 💪`, `Halfway there! ${fmtHours(hours, lang)} done and you're in “${t(stage.name)}”. Keep going 💪`),
             left3: L(`ثلاث ساعات فقط وتصل لهدفك. جسمك يحرق الدهون الآن 🔥`, `Just 3 hours to your goal. Your body is burning fat right now 🔥`),
             left1: L(`ساعة واحدة تفصلك عن الإنجاز! لا تستسلم الآن 🏁`, `One hour to go! Don't stop now 🏁`),
+            break: breakFastBody(state, day, L),
           }[m.id];
           items.push({ key: `fast:${m.id}`, kind: 'remaining', title: remaining || t('navFasting'), body });
         }
@@ -100,6 +114,36 @@ export function planNotifications(state, meta = {}, ref = new Date(), now = Date
   // Everything below is daytime-only and at most one per run (the rest waits ~10 minutes).
   if (quiet || items.length) return { items, meta: next };
   const once = (key) => (next.sent.includes(key) ? false : (next.sent.push(key), true));
+
+  // ── Meal times from today's plan: a reminder in the 20 minutes after each meal's time.
+  const plan = state.todayMeals?.date === day ? state.todayMeals.meals : [];
+  const minutes = hour * 60 + ref.getMinutes();
+  for (const [i, m] of plan.entries()) {
+    const [mh, mm] = (m.time || '').split(':').map(Number);
+    if (!Number.isFinite(mh) || state.fastStart) continue; // while fasting, the break-fast reminder covers it
+    const diff = minutes - (mh * 60 + (mm || 0));
+    if (diff >= 0 && diff <= 20 && once(`mealtime:${i}`)) {
+      items.push({ key: `mealtime:${i}`, kind: 'mealtime', title: L(`${MEAL_EMOJI[m.type] ?? '🍽️'} حان وقت ${MEAL_AR[m.type] ?? 'الوجبة'}`, `${MEAL_EMOJI[m.type] ?? '🍽️'} Time for ${m.type ?? 'your meal'}`), body: m.name });
+      return { items, meta: next };
+    }
+  }
+
+  // ── Friday evening: the week in numbers.
+  if (ref.getDay() === 5 && hour >= 18 && hour < 22 && once('weekly')) {
+    const w = weeklyStats(state, ref);
+    const mood = w.moodAvg == null ? '' : w.moodAvg >= 4 ? L(' ومزاجك كان رائعًا 😊', ' and your mood was great 😊') : w.moodAvg >= 3 ? L(' ومزاجك مستقر', ' and your mood was steady') : L('، خذ قسطًا من الراحة 💤', '; take some rest 💤');
+    const weight = w.weightChange == null ? '' : w.weightChange < 0 ? L(` ونقص وزنك ${-w.weightChange} كغ`, `, and you lost ${-w.weightChange} kg`) : '';
+    items.push({
+      key: 'weekly',
+      kind: 'weekly',
+      title: L('📊 ملخص أسبوعك', '📊 Your week'),
+      body: L(
+        `صُمت ${w.fastHours} ساعة (${w.fastsDone} صيام مكتمل)، وأكملت الماء ${w.waterDays} أيام${weight}${mood}. أسبوع جديد، إنجاز جديد!`,
+        `${w.fastHours} fasting hours (${w.fastsDone} complete fasts), water goal on ${w.waterDays} days${weight}${mood}. New week, new wins!`,
+      ),
+    });
+    return { items, meta: next };
+  }
 
   // ── Water: nudge when behind the day's pace.
   const water = state.checkins?.[day]?.water ?? 0;

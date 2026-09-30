@@ -17,6 +17,7 @@ import Coach from './pages/Coach';
 import Meals from './pages/Meals';
 import Settings from './pages/Settings';
 import Onboarding from './pages/Onboarding';
+import { useBadgeWatcher, BadgeCelebration } from './components/Badges';
 
 const TABS = [
   { id: 'home', icon: House, label: 'navHome' },
@@ -52,8 +53,8 @@ function useLocalNotifications() {
             const msg = await generateMessage(useStore.getState());
             useStore.getState().addMessage({ ...msg, kind: 'coach' });
             body = msg.text;
-          } else if (item.kind === 'insight') {
-            useStore.getState().addMessage({ text: body, source: 'local', kind: 'insight' });
+          } else if (item.kind === 'insight' || item.kind === 'weekly') {
+            useStore.getState().addMessage({ text: body, source: 'local', kind: item.kind });
           }
           toast({ title: item.title, body });
           if (s.notifEnabled) systemNotify(item.title, body);
@@ -84,7 +85,7 @@ function usePushBridge() {
     const onMessage = (e) => {
       const p = e.data?.payload;
       if (e.data?.type !== 'push' || !p) return;
-      if (p.kind === 'coach' || p.kind === 'insight' || p.kind === 'meals') pullInbox();
+      if (['coach', 'insight', 'weekly', 'meals'].includes(p.kind)) pullInbox();
       toast({ title: p.title, body: p.body });
     };
     navigator.serviceWorker?.addEventListener('message', onMessage);
@@ -110,7 +111,7 @@ function usePushBridge() {
     pullInbox();
     ensureTodayPlan(store, store().setMealPlan)?.catch(() => null);
 
-    const keys = ['lang', 'name', 'goal', 'dietId', 'fastStart', 'fastGoal', 'protocolId', 'history', 'interests', 'checkins', 'notifEnabled', 'mealProfile', 'mealPlans'];
+    const keys = ['lang', 'name', 'goal', 'dietId', 'fastStart', 'fastGoal', 'protocolId', 'history', 'interests', 'checkins', 'notifEnabled', 'mealProfile', 'mealPlans', 'weights'];
     let timer;
     const unsub = useStore.subscribe((s, prev) => {
       if (!s.pushId || !keys.some((k) => s[k] !== prev[k])) return;
@@ -251,6 +252,7 @@ export default function App() {
 
   useLocalNotifications();
   usePushBridge();
+  useBadgeWatcher();
 
   const go = (id, opts = {}) => navigate(id, opts.diet ?? null);
 
@@ -316,6 +318,7 @@ export default function App() {
         </div>
       )}
       <ToastHost />
+      <BadgeCelebration />
     </>
   );
 }

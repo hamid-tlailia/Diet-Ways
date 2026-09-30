@@ -44,6 +44,10 @@ export function buildProfile(s, ref = new Date()) {
     mood: today.mood ?? null,
     water: today.water ?? 0,
     tod: timeOfDay(ref.getHours()),
+    weight:
+      (s.weights ?? []).length >= 1
+        ? { currentKg: s.weights.at(-1).kg, changeSinceStartKg: +(s.weights.at(-1).kg - s.weights[0].kg).toFixed(1) }
+        : null,
   };
 }
 
@@ -162,6 +166,7 @@ export function buildAiPrompt(p, lang) {
       : null,
     moodToday: MOODS.find((m) => m.id === p.mood)?.en ?? null,
     waterCupsToday: p.water,
+    weight: p.weight,
     mostInterestedIn: {
       diet: p.favDiet ? dietById(p.favDiet.key).name.en : null,
       fastingStage: p.favStage ? STAGES.find((s) => s.id === p.favStage.key)?.name.en : null,
@@ -186,10 +191,13 @@ export function snapshot(s) {
     history: s.history.slice(0, 30),
     interests: s.interests,
     visits: s.visits.slice(-40),
-    checkins: Object.fromEntries(Object.entries(s.checkins).slice(-3)),
+    checkins: Object.fromEntries(Object.entries(s.checkins).sort().slice(-8)),
+    weights: (s.weights ?? []).slice(-12),
     notifEnabled: s.notifEnabled,
     mealProfile: s.mealProfile,
     mealDays: plans.slice(0, 3).map((p) => p.date),
+    // Today's meals with their times, for meal-time and break-fast reminders.
+    todayMeals: plans[0] ? { date: plans[0].date, meals: plans[0].meals.map((m) => ({ type: m.type, time: m.time, name: m.name })) } : null,
     recentMeals: plans.slice(0, 4).flatMap((p) => p.meals.map((m) => m.name)),
     tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
   };
