@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { House, LayoutGrid, Timer, Sparkles, Utensils, Settings as SettingsIcon, Sun, Moon, SunMoon, Languages } from 'lucide-react';
 import { useStore } from './store/useStore';
 import { useT, tr } from './i18n';
 import { useResolvedTheme } from './lib/hooks';
 import { generateMessage } from './lib/coach';
 import { registerSW, systemNotify } from './lib/notify';
-import { syncPush, fetchInbox } from './lib/push';
+import { syncPush, fetchInbox, enablePush, pushSupported } from './lib/push';
 import { planNotifications } from './lib/rules';
 import { ensureTodayPlan } from './lib/mealsApi';
 import { ToastHost, toast } from './components/ui';
@@ -87,6 +87,19 @@ function usePushBridge() {
       toast({ title: p.title, body: p.body });
     };
     navigator.serviceWorker?.addEventListener('message', onMessage);
+
+    // Re-register this device for background push whenever the app opens, so a phone that enabled
+    // notifications before the server was ready (or lost its subscription) recovers on its own.
+    const connect = async () => {
+      const s = store();
+      if (!s.notifEnabled || !pushSupported() || Notification.permission !== 'granted') return;
+      const pushId = await enablePush(s).catch(() => null);
+      if (pushId !== s.pushId) useStore.setState({ pushId });
+      pullInbox();
+    };
+    connect();
+    const onVisible = () => document.visibilityState === 'visible' && connect();
+    document.addEventListener('visibilitychange', onVisible);
     pullInbox();
     ensureTodayPlan(store, store().setMealPlan)?.catch(() => null);
 
@@ -99,6 +112,7 @@ function usePushBridge() {
     });
     return () => {
       navigator.serviceWorker?.removeEventListener('message', onMessage);
+      document.removeEventListener('visibilitychange', onVisible);
       unsub();
       clearTimeout(timer);
     };
@@ -152,7 +166,7 @@ export default function App() {
   const go = (id, opts = {}) => {
     setTab(id);
     setDietDetail(opts.diet ?? null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   const pages = {
@@ -186,17 +200,10 @@ export default function App() {
           </header>
 
           <main className="content">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={tab + (dietDetail ?? '')}
-                initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
-                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-                transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-              >
-                {pages[tab]}
-              </motion.div>
-            </AnimatePresence>
+            {/* New page appears immediately (no waiting for the old one to leave); its blocks reveal as you scroll. */}
+            <motion.div key={tab + (dietDetail ?? '')} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: 'easeOut' }}>
+              {pages[tab]}
+            </motion.div>
           </main>
 
           <nav className="dock glass" aria-label="Main">

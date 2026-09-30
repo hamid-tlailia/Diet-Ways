@@ -48,6 +48,11 @@ export default function Home({ go, theme }) {
         <span className="badge">{theme === 'day' ? '☀️ ' + t('dayTheme') : '🌙 ' + t('nightTheme')}</span>
         <h1>
           {t(greeting)}{lang === 'ar' ? '،' : ','} <span className="grad-text">{state.name || t('friend')}</span>
+          {today.mood && (
+            <motion.span key={today.mood} className="hero-mood" initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 400, damping: 14 }} title={t(MOODS.find((m) => m.id === today.mood))}>
+              {MOODS.find((m) => m.id === today.mood)?.emoji}
+            </motion.span>
+          )}
         </h1>
         <p className="quote">“{t(quote)}”</p>
       </motion.section>

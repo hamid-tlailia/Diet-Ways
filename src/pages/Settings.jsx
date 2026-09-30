@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Sun, Moon, SunMoon, Bell, Trash2, Sparkles, Utensils } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useT, GOALS } from '../i18n';
-import { Segmented, toast } from '../components/ui';
+import { Segmented, toast, Reveal, Confirm } from '../components/ui';
 import { requestPermission } from '../lib/notify';
 import { enablePush, disablePush } from '../lib/push';
 
@@ -10,6 +10,7 @@ export default function Settings() {
   const { t, lang } = useT();
   const s = useStore();
   const [busy, setBusy] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const toggleNotif = async () => {
     setBusy(true);
     try {
@@ -34,7 +35,7 @@ export default function Settings() {
         <h2>{t('settingsTitle')}</h2>
       </div>
 
-      <section className="card">
+      <Reveal className="card">
         <h3>{t('profile')}</h3>
         <label className="field">
           <span>{t('name')}</span>
@@ -48,9 +49,9 @@ export default function Settings() {
             </button>
           ))}
         </div>
-      </section>
+      </Reveal>
 
-      <section className="card">
+      <Reveal className="card">
         <h3>{t('language')}</h3>
         <Segmented
           value={lang}
@@ -60,9 +61,9 @@ export default function Settings() {
             { value: 'en', label: 'English' },
           ]}
         />
-      </section>
+      </Reveal>
 
-      <section className="card">
+      <Reveal className="card">
         <h3>{t('theme')}</h3>
         <Segmented
           value={s.themeMode}
@@ -74,9 +75,9 @@ export default function Settings() {
           ]}
         />
         <p className="muted small hint-below">{t('autoHint')}</p>
-      </section>
+      </Reveal>
 
-      <section className="card">
+      <Reveal className="card">
         <h3>
           <Bell size={18} /> {t('notifications')}
         </h3>
@@ -86,11 +87,31 @@ export default function Settings() {
             <span />
           </button>
         </label>
-        {s.notifEnabled && <p className={s.pushId ? 'status ok-status' : 'status'}>{s.pushId ? t('pushOn') : t('pushOff')}</p>}
+        {s.notifEnabled && (
+          <div className={s.pushId ? 'status ok-status' : 'status'}>
+            <span>{s.pushId ? t('pushOn') : t('pushOff')}</span>
+            {!s.pushId && (
+              <button
+                className="chip"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  const perm = await requestPermission();
+                  const pushId = perm === 'granted' ? await enablePush(useStore.getState()).catch(() => null) : null;
+                  s.set({ pushId });
+                  if (perm === 'denied') toast({ title: '🔕', body: t('notifDenied') });
+                  setBusy(false);
+                }}
+              >
+                {t('reconnect')}
+              </button>
+            )}
+          </div>
+        )}
         <p className="muted small">{t('notifHint')}</p>
-      </section>
+      </Reveal>
 
-      <section className="card">
+      <Reveal className="card">
         <h3>
           <Sparkles size={18} /> {t('aiSettings')}
         </h3>
@@ -100,18 +121,15 @@ export default function Settings() {
             <Utensils size={16} /> {t('editMealProfile')}
           </button>
         )}
-      </section>
+      </Reveal>
 
       <button
         className="btn danger ghost-danger"
-        onClick={() => {
-          if (window.confirm(t('confirmReset'))) {
-            s.reset();
-          }
-        }}
+        onClick={() => setConfirmReset(true)}
       >
         <Trash2 size={16} /> {t('resetData')}
       </button>
+      <Confirm open={confirmReset} onClose={() => setConfirmReset(false)} onConfirm={() => s.reset()} danger title={t('confirmReset')} body={t('resetBody')} confirmLabel={t('resetData')} />
     </div>
   );
 }

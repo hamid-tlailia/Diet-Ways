@@ -1,14 +1,25 @@
 import { snapshot } from './coach';
 import { todayKey } from './dates';
 
-export async function requestMealPlan(state) {
-  const res = await fetch('/api/meals', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ state: snapshot(state) }),
-  });
-  if (!res.ok) throw new Error(res.status === 429 ? 'rate' : 'failed');
-  return (await res.json()).plan;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// POSTs JSON; when the free AI is busy (503) it waits a moment and tries again once.
+async function postAI(url, payload, onRetry) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+    if (res.ok) return res.json();
+    if (res.status === 429) throw new Error('rate');
+    if (attempt === 0 && res.status >= 500) {
+      onRetry?.();
+      await sleep(2500);
+      continue;
+    }
+    throw new Error(res.status === 503 ? 'busy' : 'failed');
+  }
+}
+
+export async function requestMealPlan(state, onRetry) {
+  return (await postAI('/api/meals', { state: snapshot(state) }, onRetry)).plan;
 }
 
 let pending = null;
@@ -41,16 +52,11 @@ const draw = (img, max, quality) => {
 };
 
 // Downscales the photo (keeps uploads small and fast) and asks the server to analyse it.
-export async function scanMeal(file, state) {
+export async function scanMeal(file, state, onRetry) {
   const img = await loadImage(file);
-  const full = draw(img, 1024, 0.82);
+  const full = draw(img, 896, 0.8); // plenty for food recognition, and uploads fast on mobile data
   const thumb = draw(img, 160, 0.7);
   URL.revokeObjectURL(img.src);
-  const res = await fetch('/api/scan', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ image: full.split(',')[1], mime: 'image/jpeg', state: snapshot(state) }),
-  });
-  if (!res.ok) throw new Error(res.status === 429 ? 'rate' : 'failed');
-  return { ...(await res.json()).scan, thumb };
+  const { scan } = await postAI('/api/scan', { image: full.split(',')[1], mime: 'image/jpeg', state: snapshot(state) }, onRetry);
+  return { ...scan, thumb };
 }

@@ -15,6 +15,6 @@ export default async function handler(req, res) {
     return send(res, 200, { scan: normalizeScan(raw) });
   } catch (e) {
     console.error('scan failed', e.message);
-    return send(res, e.status === 413 ? 413 : 502, { error: 'scan unavailable' });
+    return send(res, e.status === 413 ? 413 : 503, { error: 'scan unavailable', busy: !!e.busy });
   }
 }

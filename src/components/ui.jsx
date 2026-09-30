@@ -103,4 +103,42 @@ export const fadeUp = {
   transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
 };
 
-export const stagger = (i) => ({ ...fadeUp, transition: { ...fadeUp.transition, delay: i * 0.05 } });
+// Reveal-on-scroll: each block fades up the first time it enters the viewport.
+export const stagger = (i = 0) => ({
+  initial: { opacity: 0, y: 18 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.12 },
+  transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: Math.min(i, 4) * 0.04 },
+});
+
+export function Reveal({ i = 0, ...props }) {
+  return <motion.section {...stagger(i)} {...props} />;
+}
+
+// In-app confirmation (replaces the browser's alert/confirm dialogs).
+export function Confirm({ open, title, body, confirmLabel, danger, onConfirm, onClose }) {
+  const { t } = useT();
+  return (
+    <Sheet open={open} onClose={onClose}>
+      <div className="confirm">
+        <span className={danger ? 'confirm-ico danger' : 'confirm-ico'}>{danger ? '⚠️' : '❓'}</span>
+        <h3>{title}</h3>
+        {body && <p className="muted">{body}</p>}
+        <div className="confirm-actions">
+          <button className="btn ghost" onClick={onClose}>
+            {t('cancel')}
+          </button>
+          <button
+            className={danger ? 'btn danger' : 'btn primary'}
+            onClick={() => {
+              onClose();
+              onConfirm();
+            }}
+          >
+            {confirmLabel ?? t('confirm')}
+          </button>
+        </div>
+      </div>
+    </Sheet>
+  );
+}

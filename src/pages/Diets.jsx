@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Check, Ban, Footprints, Dumbbell, Flower2, Z
 import { DIETS, dietById } from '../data/diets';
 import { useStore } from '../store/useStore';
 import { useT } from '../i18n';
-import { Segmented, stagger } from '../components/ui';
+import { Segmented, stagger, Reveal } from '../components/ui';
 
 const EX_ICONS = { footprints: Footprints, dumbbell: Dumbbell, flower: Flower2, zap: Zap, waves: Waves, bike: Bike, target: Target };
 
@@ -120,10 +120,10 @@ function DietDetail({ id, onBack, go }) {
       <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="detail-body">
         {tab === 'overview' && (
           <>
-            <section className="card">
+            <Reveal className="card">
               <p className="lead">{t(d.overview)}</p>
-            </section>
-            <section className="card">
+            </Reveal>
+            <Reveal className="card">
               <h3>{t('benefits')}</h3>
               <ul className="check-list">
                 {d.benefits.map((b, k) => (
@@ -132,8 +132,8 @@ function DietDetail({ id, onBack, go }) {
                   </li>
                 ))}
               </ul>
-            </section>
-            <section className="card warn">
+            </Reveal>
+            <Reveal className="card warn">
               <h3>
                 <ShieldAlert size={18} /> {t('cautions')}
               </h3>
@@ -142,13 +142,13 @@ function DietDetail({ id, onBack, go }) {
                   <li key={k}>{t(c)}</li>
                 ))}
               </ul>
-            </section>
+            </Reveal>
           </>
         )}
 
         {tab === 'method' && (
           <>
-            <section className="card">
+            <Reveal className="card">
               <h3>{t('method')}</h3>
               <ol className="steps">
                 {d.howTo.map((s, k) => (
@@ -158,8 +158,8 @@ function DietDetail({ id, onBack, go }) {
                   </li>
                 ))}
               </ol>
-            </section>
-            <section className="card">
+            </Reveal>
+            <Reveal className="card">
               <h3>{t('sampleDay')}</h3>
               <div className="timeline">
                 {d.sampleDay.map((m, k) => (
@@ -170,13 +170,13 @@ function DietDetail({ id, onBack, go }) {
                   </div>
                 ))}
               </div>
-            </section>
+            </Reveal>
           </>
         )}
 
         {tab === 'foods' && (
           <div className="two-col">
-            <section className="card food ok-card">
+            <Reveal className="card food ok-card">
               <h3>
                 <Check size={18} /> {t('allowed')}
               </h3>
@@ -187,8 +187,8 @@ function DietDetail({ id, onBack, go }) {
                   </span>
                 ))}
               </div>
-            </section>
-            <section className="card food no-card">
+            </Reveal>
+            <Reveal className="card food no-card">
               <h3>
                 <Ban size={18} /> {t('forbidden')}
               </h3>
@@ -199,7 +199,7 @@ function DietDetail({ id, onBack, go }) {
                   </span>
                 ))}
               </div>
-            </section>
+            </Reveal>
           </div>
         )}
 

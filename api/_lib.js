@@ -7,7 +7,8 @@ export { allow } from './_store.js';
 const GEMINI = 'https://generativelanguage.googleapis.com/v1beta';
 let candidates = null;
 
-// Free-tier "flash" models the key can use, newest stable first; GEMINI_MODEL (if set) is tried first.
+// Free-tier Flash models the key can use: newest stable first, then older stable, then the lighter
+// "lite" models (less crowded when the big ones are overloaded). GEMINI_MODEL, if set, goes first.
 async function modelList(key) {
   if (candidates) return candidates;
   const pinned = process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : [];
@@ -16,18 +17,19 @@ async function modelList(key) {
     if (!res.ok) throw new Error(`gemini models ${res.status}`);
     const { models = [] } = await res.json();
     const version = (n) => Number(n.match(/gemini-(\d+(?:\.\d+)?)/)?.[1] ?? 0);
-    const found = models
+    const flash = models
       .map((m) => ({ id: m.name.replace(/^models\//, ''), methods: m.supportedGenerationMethods ?? [] }))
-      .filter((m) => m.methods.includes('generateContent') && /^gemini-[\d.]+-flash/.test(m.id) && !/image|tts|audio|live|exp/.test(m.id))
-      .sort(
-        (a, b) =>
-          Number(a.id.includes('lite')) - Number(b.id.includes('lite')) || // full flash before lite
-          Number(a.id.includes('preview')) - Number(b.id.includes('preview')) || // stable before preview
-          version(b.id) - version(a.id) ||
-          a.id.length - b.id.length,
-      )
-      .map((m) => m.id);
-    candidates = [...new Set([...pinned, ...found])].slice(0, 4);
+      .filter((m) => m.methods.includes('generateContent') && /^gemini-[\d.]+-flash/.test(m.id) && !/image|tts|audio|live|exp|thinking/.test(m.id))
+      .map((m) => m.id)
+      .filter((id) => !/-\d{3}$/.test(id)) // pinned snapshots duplicate their alias
+      .sort((a, b) => Number(a.includes('preview')) - Number(b.includes('preview')) || version(b) - version(a) || a.length - b.length);
+    const full = flash.filter((id) => !id.includes('lite'));
+    const lite = flash.filter((id) => id.includes('lite'));
+    // Interleave so each parallel pair mixes a full and a lite model.
+    const mixed = [];
+    for (let i = 0; i < Math.max(full.length, lite.length); i++) mixed.push(full[i], lite[i]);
+    candidates = [...new Set([...pinned, ...mixed.filter(Boolean)])].slice(0, 6);
+    if (!candidates.length) throw new Error('no flash models');
   } catch (e) {
     console.error('gemini model discovery failed', e.message);
     candidates = [...new Set([...pinned, 'gemini-2.5-flash', 'gemini-2.5-flash-lite'])];
@@ -35,20 +37,33 @@ async function modelList(key) {
   return candidates;
 }
 
-async function generate(key, model, { system, user, image, json }) {
+// Keep "thinking" short: these are quick tasks and long reasoning is what made scans slow.
+const thinkingFor = (model) => (/^gemini-2\./.test(model) ? { thinkingBudget: 0 } : { thinkingLevel: 'low' });
+
+async function generate(key, model, { system, user, image, json }, withThinking = true) {
   const parts = [{ text: user }];
   if (image) parts.push({ inlineData: { mimeType: image.mime, data: image.data } });
   const res = await fetch(`${GEMINI}/models/${model}:generateContent`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
-    signal: AbortSignal.timeout(json ? 45_000 : 15_000),
+    signal: AbortSignal.timeout(image ? 30_000 : json ? 30_000 : 12_000),
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: system }] },
       contents: [{ role: 'user', parts }],
-      generationConfig: { temperature: json ? 0.8 : 0.95, maxOutputTokens: json ? 8192 : 2048, ...(json && { responseMimeType: 'application/json' }) },
+      generationConfig: {
+        temperature: json ? 0.8 : 0.95,
+        maxOutputTokens: json ? 8192 : 1024,
+        ...(json && { responseMimeType: 'application/json' }),
+        ...(withThinking && { thinkingConfig: thinkingFor(model) }),
+      },
     }),
   });
-  if (!res.ok) throw Object.assign(new Error(`gemini ${model} ${res.status}: ${(await res.text()).slice(0, 160)}`), { status: res.status });
+  if (!res.ok) {
+    const detail = (await res.text()).slice(0, 200);
+    // Some models reject the thinking setting; retry once without it.
+    if (res.status === 400 && withThinking && /thinking/i.test(detail)) return generate(key, model, { system, user, image, json }, false);
+    throw Object.assign(new Error(`gemini ${model} ${res.status}: ${detail}`), { status: res.status });
+  }
   const data = await res.json();
   const text = (data.candidates?.[0]?.content?.parts ?? [])
     .filter((p) => !p.thought)
@@ -62,22 +77,31 @@ async function generate(key, model, { system, user, image, json }) {
   return JSON.parse(match[0]);
 }
 
-// Calls Gemini, moving to the next model when one is busy (503/429), retired (404) or returns bad output.
-// Throws when nothing works so callers can fall back.
+// Tries models two at a time in parallel and takes the first good answer. The free tier is often
+// "overloaded" (503) on one model while another answers fine, so racing pairs is both faster and
+// far more reliable than walking the list one by one.
 async function callGemini(request) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('GEMINI_API_KEY is not set');
+  const models = await modelList(key);
   let lastErr;
-  for (const model of await modelList(key)) {
+  for (let i = 0; i < models.length; i += 2) {
+    const pair = models.slice(i, i + 2);
     try {
-      return await generate(key, model, request);
-    } catch (e) {
-      lastErr = e;
-      console.error('ai attempt failed', e.message);
-      if (e.status === 400 || e.status === 401 || e.status === 403) break; // bad key/request: other models won't help
+      return await Promise.any(
+        pair.map((m) =>
+          generate(key, m, request).catch((e) => {
+            console.error('ai attempt failed', e.message);
+            throw e;
+          }),
+        ),
+      );
+    } catch (agg) {
+      lastErr = agg.errors?.[0] ?? agg;
+      if (agg.errors?.every((e) => [400, 401, 403].includes(e.status))) break; // bad key/request: other models won't help
     }
   }
-  throw lastErr ?? new Error('no gemini model available');
+  throw Object.assign(lastErr ?? new Error('no gemini model available'), { busy: true });
 }
 
 // Free AI text via Google Gemini (motivational notifications).

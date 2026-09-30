@@ -8,8 +8,10 @@ import { hasStore, listSubs, saveMeta, addInbox, deleteSub } from './_store.js';
 
 // Called every ~10 minutes (GitHub Actions). Applies the shared notification rules per device.
 export default async function handler(req, res) {
+  // Secret via header (GitHub Actions) or ?key= (simple URL for external schedulers like cron-job.org).
   const secret = process.env.CRON_SECRET;
-  if (!secret || req.headers.authorization !== `Bearer ${secret}`) return send(res, 401, { error: 'unauthorized' });
+  const key = new URL(req.url, 'http://x').searchParams.get('key');
+  if (!secret || (req.headers.authorization !== `Bearer ${secret}` && key !== secret)) return send(res, 401, { error: 'unauthorized' });
   if (!hasStore()) return send(res, 503, { error: 'push storage not configured' });
 
   webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:admin@example.com', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);

@@ -119,7 +119,9 @@ export function scanPrompt(state, lang) {
       'You are a nutrition expert analysing a photo of a meal. Identify the dish and each visible item, estimate portion sizes in grams, ' +
       'and estimate calories and macros realistically (state uncertainty in the verdict if the photo is unclear). ' +
       'Judge whether it suits the user\'s diet, goal, allergies and health conditions: "yes", "moderate" or "no". ' +
-      'If the image is not food, set name to an explanation, calories to 0 and suitable to "no". ' +
+      'If the image shows several separate foods (a collage, poster, menu or grocery photo), name it after the group, list each food as an item ' +
+      'with a typical single serving, give totals for one serving of each, and judge each food\'s fit in the verdict and tips. ' +
+      'Read any text in the image to help identify foods. Only if there is truly no food at all, set name to an explanation, calories to 0 and suitable to "no". ' +
       `Write every text field in ${language}. Respond with JSON only, matching this shape: ` +
       '{"name":"","items":[{"name":"","grams":0,"calories":0}],"calories":0,"protein":0,"carbs":0,"fat":0,"fiber":0,' +
       '"suitable":"yes|moderate|no","verdict":"","tips":[""]}',

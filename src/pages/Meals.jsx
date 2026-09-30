@@ -240,12 +240,12 @@ function Today() {
 
   const load = (force = false) => {
     setState('loading');
-    const p = force ? requestMealPlan(useStore.getState()).then((pl) => (setMealPlan(pl), pl)) : ensureTodayPlan(useStore.getState, setMealPlan);
+    const p = force ? requestMealPlan(useStore.getState(), () => toast({ title: '⏳', body: t('aiRetrying'), duration: 3000 })).then((pl) => (setMealPlan(pl), pl)) : ensureTodayPlan(useStore.getState, setMealPlan);
     Promise.resolve(p)
       .then(() => setState('ready'))
       .catch((e) => {
         setState(useStore.getState().mealPlans[day] ? 'ready' : 'error');
-        toast({ title: '⚠️', body: t(e.message === 'rate' ? 'rateLimited' : 'planFailed') });
+        toast({ title: '⚠️', body: t({ rate: 'rateLimited', busy: 'aiBusy' }[e.message] ?? 'planFailed') });
       });
   };
   useEffect(() => {
@@ -344,11 +344,11 @@ function Scan() {
     setPreview(URL.createObjectURL(file));
     setBusy(true);
     try {
-      const scan = await scanMeal(file, useStore.getState());
+      const scan = await scanMeal(file, useStore.getState(), () => toast({ title: '⏳', body: t('aiRetrying'), duration: 3000 }));
       addScan(scan);
       setResult(scan);
     } catch (err) {
-      toast({ title: '⚠️', body: t(err.message === 'rate' ? 'rateLimited' : 'scanFailed') });
+      toast({ title: '⚠️', body: t({ rate: 'rateLimited', busy: 'aiBusy' }[err.message] ?? 'scanFailed') });
     } finally {
       setBusy(false);
     }

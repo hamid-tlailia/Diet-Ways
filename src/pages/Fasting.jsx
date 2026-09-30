@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Square, Info } from 'lucide-react';
+import { Play, Square, Info, ChevronDown } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useT } from '../i18n';
 import { useNow } from '../lib/hooks';
 import { PROTOCOLS, STAGES, stageAt, nextStage } from '../data/fasting';
 import StageIcon from '../components/StageIcon';
-import { Sheet, stagger } from '../components/ui';
+import { Sheet, Reveal, Confirm } from '../components/ui';
 import { fmtDuration } from './Home';
 
 const R = 132;
@@ -113,6 +113,8 @@ export default function Fasting() {
   const { protocolId, fastStart, fastGoal, history, setProtocol, startFast, endFast, track } = useStore();
   const now = useNow(1000);
   const [open, setOpen] = useState(null);
+  const [confirmEnd, setConfirmEnd] = useState(false);
+  const [stagesOpen, setStagesOpen] = useState(false);
 
   const running = !!fastStart;
   const hours = running ? (now - fastStart) / 3.6e6 : 0;
@@ -124,9 +126,7 @@ export default function Fasting() {
     setOpen(s);
   };
 
-  const onEnd = () => {
-    if (window.confirm(t('confirmEnd'))) endFast();
-  };
+  const onEnd = () => setConfirmEnd(true);
 
   const fmtDate = (ms) =>
     new Date(ms).toLocaleString(lang === 'ar' ? 'ar' : 'en', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
@@ -158,7 +158,7 @@ export default function Fasting() {
         {t('hoursShort')} {t('fast')}
       </p>
 
-      <section className="card ring-card">
+      <Reveal className="card ring-card">
         <Ring hours={hours} goal={fastGoal} running={running} onStage={openStage} />
 
         {running && (
@@ -183,32 +183,49 @@ export default function Fasting() {
         <motion.button whileTap={{ scale: 0.96 }} className={running ? 'btn danger big' : 'btn primary big'} onClick={running ? onEnd : startFast}>
           {running ? <Square size={18} /> : <Play size={18} />} {running ? t('endFast') : t('startFast')}
         </motion.button>
-      </section>
+      </Reveal>
 
-      <h3 className="section-title">{t('stages')}</h3>
-      <div className="stage-list">
-        {STAGES.map((s, k) => {
-          const status = !running ? '' : hours >= s.from ? (stageAt(hours).id === s.id ? 'current' : 'reached') : '';
-          return (
-            <motion.button {...stagger(k)} key={s.id} className={`stage-card ${status}`} style={{ '--c': s.color }} onClick={() => openStage(s)}>
-              <span className="stage-ico">
-                <StageIcon stage={s} size={38} active={status === 'current'} />
-              </span>
-              <span className="stage-txt">
-                <strong>{t(s.name)}</strong>
-                <small>
-                  {s.from}
-                  {t('hoursShort')}+ · {t(s.short)}
-                </small>
-              </span>
-              <span className="stage-status">{status === 'current' ? t('current') : status === 'reached' ? t('reached') : <Info size={16} />}</span>
-            </motion.button>
-          );
-        })}
-      </div>
+      {/* Stages accordion: the current stage stays visible, the full list opens on demand. */}
+      <Reveal className={stagesOpen ? 'card accordion open' : 'card accordion'}>
+        <button className="accordion-head" onClick={() => setStagesOpen(!stagesOpen)} aria-expanded={stagesOpen}>
+          <span className="accordion-title">
+            <strong>{t('stages')}</strong>
+            <small className="muted">
+              {STAGES.length} · {running ? `${t('current')}: ${t(stageAt(hours).name)}` : t('tapStage')}
+            </small>
+          </span>
+          <ChevronDown size={20} className="chev" />
+        </button>
+        <AnimatePresence initial={false}>
+          {stagesOpen && (
+            <motion.div className="accordion-body" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}>
+              <div className="stage-list">
+                {STAGES.map((s) => {
+                  const status = !running ? '' : hours >= s.from ? (stageAt(hours).id === s.id ? 'current' : 'reached') : '';
+                  return (
+                    <button key={s.id} className={`stage-card ${status}`} style={{ '--c': s.color }} onClick={() => openStage(s)}>
+                      <span className="stage-ico">
+                        <StageIcon stage={s} size={38} active={status === 'current'} />
+                      </span>
+                      <span className="stage-txt">
+                        <strong>{t(s.name)}</strong>
+                        <small>
+                          {s.from}
+                          {t('hoursShort')}+ · {t(s.short)}
+                        </small>
+                      </span>
+                      <span className="stage-status">{status === 'current' ? t('current') : status === 'reached' ? t('reached') : <Info size={16} />}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Reveal>
 
       <h3 className="section-title">{t('history')}</h3>
-      <section className="card">
+      <Reveal className="card">
         {history.length === 0 ? (
           <p className="muted center">{t('noHistory')}</p>
         ) : (
@@ -231,7 +248,17 @@ export default function Fasting() {
             })}
           </div>
         )}
-      </section>
+      </Reveal>
+
+      <Confirm
+        open={confirmEnd}
+        onClose={() => setConfirmEnd(false)}
+        onConfirm={endFast}
+        danger
+        title={t('confirmEnd')}
+        body={t('endFastBody')}
+        confirmLabel={t('endFast')}
+      />
 
       <Sheet open={!!open} onClose={() => setOpen(null)} accent={open?.color}>
         {open && (
