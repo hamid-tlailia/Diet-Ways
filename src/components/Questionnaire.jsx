@@ -5,9 +5,18 @@ import { useStore } from '../store/useStore';
 import { useT } from '../i18n';
 import { GENDERS, ACTIVITY, WORK, CONDITIONS, ALLERGIES, FOODS } from '../lib/meals';
 
-function Chips({ options, value = [], onChange, single = false }) {
+const NONE = { id: 'none', emoji: '✓', ar: 'لا شيء مما سبق', en: 'None of these' };
+
+// Multi/single choice chips. With `withNone`, "None of these" is exclusive with the other options.
+function Chips({ options, value = [], onChange, single = false, withNone = false }) {
   const { t } = useT();
-  const toggle = (id) => onChange(single ? id : value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
+  const toggle = (id) => {
+    if (single) return onChange(id);
+    if (id === 'none') return onChange(value.includes('none') ? [] : ['none']);
+    const rest = value.filter((x) => x !== 'none');
+    onChange(rest.includes(id) ? rest.filter((x) => x !== id) : [...rest, id]);
+  };
+  if (withNone) options = [...options, NONE];
   const isOn = (id) => (single ? value === id : value.includes(id));
   return (
     <div className="chips-wrap">
@@ -85,10 +94,10 @@ export default function Questionnaire({ onSaved, onSkip }) {
           {step === 2 && (
             <>
               <span className="field-label">{t('conditions')}</span>
-              <Chips options={CONDITIONS} value={f.conditions} onChange={(conditions) => up({ conditions })} />
+              <Chips withNone options={CONDITIONS} value={f.conditions} onChange={(conditions) => up({ conditions, ...(conditions.includes('none') && { conditionsOther: '' }) })} />
               <input placeholder={t('other')} value={f.conditionsOther ?? ''} onChange={(e) => up({ conditionsOther: e.target.value })} maxLength={120} />
               <span className="field-label">{t('allergies')}</span>
-              <Chips options={ALLERGIES} value={f.allergies} onChange={(allergies) => up({ allergies })} />
+              <Chips withNone options={ALLERGIES} value={f.allergies} onChange={(allergies) => up({ allergies, ...(allergies.includes('none') && { allergiesOther: '' }) })} />
               <input placeholder={t('other')} value={f.allergiesOther ?? ''} onChange={(e) => up({ allergiesOther: e.target.value })} maxLength={120} />
             </>
           )}

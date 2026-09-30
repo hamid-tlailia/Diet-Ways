@@ -104,13 +104,13 @@ export default function Home({ go, theme }) {
         </div>
       </motion.section>
 
-      <motion.section {...stagger(i++)} className="card water">
+      <motion.section {...stagger(i++)} className={today.water >= 8 ? 'card water done' : 'card water'}>
         <div className="row-between">
           <span className="eyebrow">
             <Droplet size={14} /> {t('water')}
           </span>
-          <span className="muted">
-            {today.water}/8 {t('cups')}
+          <span className={today.water >= 8 ? 'water-count ok' : 'muted'}>
+            {Math.min(8, today.water)}/8 {t('cups')}
           </span>
         </div>
         <div className="cups">
@@ -119,12 +119,17 @@ export default function Home({ go, theme }) {
           ))}
         </div>
         <div className="row-gap">
-          <button className="icon-btn" onClick={() => state.checkin({ water: Math.max(0, today.water - 1) })} aria-label="-">
+          <button className="icon-btn" onClick={() => state.checkin({ water: Math.max(0, Math.min(8, today.water) - 1) })} aria-label="-">
             <Minus size={18} />
           </button>
-          <button className="btn primary grow" onClick={() => state.checkin({ water: Math.min(12, today.water + 1) })}>
-            <Plus size={18} /> 💧
-          </button>
+          {/* The daily goal is 8 cups: counting stops there and the card shows it's complete. */}
+          {today.water >= 8 ? (
+            <span className="water-done grow">✓ {t('waterDone')}</span>
+          ) : (
+            <button className="btn primary grow" onClick={() => state.checkin({ water: Math.min(8, today.water + 1) })}>
+              <Plus size={18} /> 💧
+            </button>
+          )}
         </div>
       </motion.section>
 

@@ -90,8 +90,8 @@ function describeProfile(state) {
     activityLevel: m.activity || null,
     work: m.work || null,
     sport: m.sport || null,
-    healthConditions: [...labels(CONDITIONS, m.conditions), m.conditionsOther].filter(Boolean),
-    allergiesStrictlyAvoid: [...labels(ALLERGIES, m.allergies), m.allergiesOther].filter(Boolean),
+    healthConditions: m.conditions?.includes('none') ? ['none'] : [...labels(CONDITIONS, m.conditions), m.conditionsOther].filter(Boolean),
+    allergiesStrictlyAvoid: m.allergies?.includes('none') ? ['none'] : [...labels(ALLERGIES, m.allergies), m.allergiesOther].filter(Boolean),
     favouriteFoods: [...labels(FOODS, m.likes), m.likesOther].filter(Boolean),
     dislikedFoods: m.dislikes || null,
   };
