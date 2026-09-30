@@ -24,8 +24,9 @@ const TABS = [
   { id: 'fasting', icon: Timer, label: 'navFasting' },
   { id: 'meals', icon: Utensils, label: 'navMeals' },
   { id: 'coach', icon: Sparkles, label: 'navCoach' },
-  { id: 'settings', icon: SettingsIcon, label: 'navSettings' },
 ];
+// Settings is reached from the gear in the top bar, keeping the dock to five tabs.
+const ROUTES = [...TABS.map((x) => x.id), 'settings'];
 
 // In-app notifications when this device has no server push: same rules as the cron (lib/rules.js).
 function useLocalNotifications() {
@@ -92,9 +93,15 @@ function usePushBridge() {
     // notifications before the server was ready (or lost its subscription) recovers on its own.
     const connect = async () => {
       const s = store();
-      if (!s.notifEnabled || !pushSupported() || Notification.permission !== 'granted') return;
-      const pushId = await enablePush(s).catch(() => null);
-      if (pushId !== s.pushId) useStore.setState({ pushId });
+      if (!s.notifEnabled) return;
+      if (!pushSupported()) return useStore.setState({ pushId: null, pushError: 'support: push not supported by this browser' });
+      if (Notification.permission !== 'granted') return useStore.setState({ pushId: null, pushError: `permission: ${Notification.permission}` });
+      try {
+        const pushId = await enablePush(s);
+        useStore.setState({ pushId, pushError: null });
+      } catch (e) {
+        useStore.setState({ pushId: null, pushError: `${e.step}: ${e.message}` });
+      }
       pullInbox();
     };
     connect();
@@ -119,7 +126,7 @@ function usePushBridge() {
   }, []);
 }
 
-function ThemeLangControls() {
+function ThemeLangControls({ tab, go }) {
   const { t, lang } = useT();
   const mode = useStore((s) => s.themeMode);
   const set = useStore((s) => s.set);
@@ -133,6 +140,9 @@ function ThemeLangControls() {
       <button className="chip glass" onClick={() => set({ lang: lang === 'ar' ? 'en' : 'ar' })} title={t('language')}>
         <Languages size={16} /> {lang === 'ar' ? 'EN' : 'ع'}
       </button>
+      <button className={tab === 'settings' ? 'chip glass icon-chip on' : 'chip glass icon-chip'} onClick={() => go('settings')} title={t('navSettings')} aria-label={t('navSettings')}>
+        <SettingsIcon size={17} />
+      </button>
     </div>
   );
 }
@@ -145,7 +155,7 @@ export default function App() {
   // The current page lives in the URL hash (#fasting, #diets/keto) so reloads and the back button keep your place.
   const parseHash = () => {
     const [id, diet] = window.location.hash.slice(1).split('/');
-    return { tab: TABS.some((x) => x.id === id) ? id : 'home', diet: diet || null };
+    return { tab: ROUTES.includes(id) ? id : 'home', diet: diet || null };
   };
   const [route, setRoute] = useState(parseHash);
   const { tab, diet: dietDetail } = route;
@@ -210,7 +220,7 @@ export default function App() {
               <img src="/favicon.svg" alt="" width="34" height="34" />
               <span>{t('appName')}</span>
             </div>
-            <ThemeLangControls />
+            <ThemeLangControls tab={tab} go={go} />
           </header>
 
           <main className="content">

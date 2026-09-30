@@ -2132,3 +2132,90 @@ select:focus {
   padding: 8px 0 0;
   backdrop-filter: none;
 }
+.push-error {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 0.8;
+  direction: ltr;
+  text-align: start;
+  word-break: break-word;
+}
+
+/* ───────────── Dock v2: five equal tabs, icon above a small label ───────────── */
+.dock {
+  left: 12px;
+  right: 12px;
+  transform: none;
+  max-width: 560px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  padding: 6px;
+  border-radius: 24px;
+}
+.dock-item,
+.dock-item.on {
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 7px 2px 6px;
+  min-width: 0;
+  max-width: none;
+  border-radius: 18px;
+  color: var(--muted);
+}
+.dock-item.on {
+  color: var(--accent);
+}
+.dock-item svg {
+  width: 44px;
+  height: 30px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  box-sizing: border-box;
+  transition: background 0.25s, color 0.25s;
+}
+.dock-item.on svg {
+  color: var(--accent-ink);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 6px 16px -6px var(--accent);
+}
+.dock-pill {
+  display: none;
+}
+.dock-label,
+.dock-item.on .dock-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  .dock {
+    left: 10px;
+    right: 10px;
+    gap: 0;
+    padding: 5px;
+  }
+  .dock-item,
+  .dock-item.on {
+    flex: none;
+    max-width: none;
+    padding: 7px 0 6px;
+  }
+}
+.icon-chip {
+  padding: 8px 10px;
+}
+.push-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}

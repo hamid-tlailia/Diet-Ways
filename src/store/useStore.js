@@ -34,6 +34,7 @@ const initialState = {
   notifEnabled: false,
   notifMeta: {}, // delivery bookkeeping for in-app notifications (see lib/rules.js)
   pushId: null, // set when this device receives server push (works with the app closed)
+  pushError: null, // last reason background push could not be set up (shown in Settings)
   messages: [], // { id, text, source, at, dietId, kind }
 
   // Meals

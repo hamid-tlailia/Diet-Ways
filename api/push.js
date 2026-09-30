@@ -11,6 +11,11 @@ export default async function handler(req, res) {
   if (req.method === 'GET' && url.searchParams.has('key')) {
     return send(res, 200, { publicKey: process.env.VAPID_PUBLIC_KEY ?? null, storage: hasStore() });
   }
+  if (req.method === 'POST' && url.searchParams.has('diag')) {
+    const { diag } = await readJson(req, 4000).catch(() => ({}));
+    console.error('push client failure', JSON.stringify(diag));
+    return send(res, 200, { ok: true });
+  }
   if (!hasStore()) return send(res, 503, { error: 'push storage not configured' });
 
   try {

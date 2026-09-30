@@ -75,6 +75,7 @@ export const STRINGS = {
   confirm: { ar: 'تأكيد', en: 'Confirm' },
   endFastBody: { ar: 'سيُحفظ صيامك في السجل مع الساعات التي أتممتها.', en: 'Your fast will be saved to history with the hours you completed.' },
   resetBody: { ar: 'لا يمكن التراجع عن هذا.', en: 'This cannot be undone.' },
+  pushPermHint: { ar: 'الإشعارات محظورة لهذا الموقع: من قائمة المتصفح ← معلومات الموقع ← الإشعارات ← سماح، ثم اضغط إعادة الربط.', en: 'Notifications are blocked for this site: browser menu → Site info → Notifications → Allow, then tap Reconnect.' },
   reconnect: { ar: 'إعادة الربط', en: 'Reconnect' },
   showStages: { ar: 'عرض كل المراحل', en: 'Show all stages' },
   close: { ar: 'إغلاق', en: 'Close' },

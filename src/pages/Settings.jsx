@@ -13,6 +13,15 @@ export default function Settings() {
   const [busy, setBusy] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [editMeals, setEditMeals] = useState(false);
+  const connectPush = async (perm) => {
+    if (perm !== 'granted') return s.set({ pushId: null, pushError: `permission: ${perm}` });
+    try {
+      s.set({ pushId: await enablePush(useStore.getState()), pushError: null });
+    } catch (e) {
+      s.set({ pushId: null, pushError: `${e.step}: ${e.message}` });
+    }
+  };
+
   const toggleNotif = async () => {
     setBusy(true);
     try {
@@ -23,8 +32,7 @@ export default function Settings() {
       }
       const perm = await requestPermission();
       s.set({ notifEnabled: true });
-      const pushId = perm === 'granted' ? await enablePush(useStore.getState()).catch(() => null) : null;
-      s.set({ pushId });
+      await connectPush(perm);
       if (perm === 'denied') toast({ title: '🔕', body: t('notifDenied') });
     } finally {
       setBusy(false);
@@ -91,7 +99,15 @@ export default function Settings() {
         </label>
         {s.notifEnabled && (
           <div className={s.pushId ? 'status ok-status' : 'status'}>
-            <span>{s.pushId ? t('pushOn') : t('pushOff')}</span>
+            <span>
+              {s.pushId ? t('pushOn') : t('pushOff')}
+              {!s.pushId && s.pushError && (
+                <>
+                  {s.pushError.startsWith('permission') && <small className="push-hint">{t('pushPermHint')}</small>}
+                  <small className="push-error">{s.pushError}</small>
+                </>
+              )}
+            </span>
             {!s.pushId && (
               <button
                 className="chip"
@@ -99,8 +115,7 @@ export default function Settings() {
                 onClick={async () => {
                   setBusy(true);
                   const perm = await requestPermission();
-                  const pushId = perm === 'granted' ? await enablePush(useStore.getState()).catch(() => null) : null;
-                  s.set({ pushId });
+                  await connectPush(perm);
                   if (perm === 'denied') toast({ title: '🔕', body: t('notifDenied') });
                   setBusy(false);
                 }}

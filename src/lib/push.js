@@ -21,30 +21,50 @@ const postSub = (subscription, state) =>
     body: JSON.stringify({ subscription, state: snapshot(state) }),
   });
 
-// Subscribes this device to server push. Returns the device id, or null if the server can't do push.
+const withTimeout = (p, ms, step) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(`${step}: timeout`)), ms))]);
+
+// Sends a short failure report to the server logs so push problems on real phones can be diagnosed.
+const report = (step, err) =>
+  fetch('/api/push?diag', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ diag: { step, error: `${err?.name ?? ''}: ${err?.message ?? err}`.slice(0, 300), ua: navigator.userAgent.slice(0, 200) } }),
+  }).catch(() => {});
+
+// Subscribes this device to server push. Returns the device id; throws { step } explaining what failed.
 // Replaces the browser's subscription when it was made with an old key or the push service expired it.
 export async function enablePush(state) {
-  if (!pushSupported()) return null;
-  const info = await fetch('/api/push?key').then((r) => (r.ok ? r.json() : null)).catch(() => null);
-  if (!info?.publicKey || !info.storage) return null;
-  const key = b64ToBytes(info.publicKey);
-  const reg = await navigator.serviceWorker.ready;
-  const fresh = () => reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+  let step = 'support';
+  try {
+    if (!pushSupported()) throw new Error('push not supported by this browser');
+    step = 'key';
+    const info = await fetch('/api/push?key').then((r) => (r.ok ? r.json() : null));
+    if (!info?.publicKey || !info.storage) throw new Error('server push not configured');
+    const key = b64ToBytes(info.publicKey.trim());
+    step = 'worker';
+    const reg = await withTimeout(navigator.serviceWorker.ready, 10_000, 'worker');
+    const fresh = () => reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
 
-  let subscription = await reg.pushManager.getSubscription();
-  if (subscription && !sameKey(subscription.options?.applicationServerKey, key)) {
-    await subscription.unsubscribe();
-    subscription = null;
+    step = 'subscribe';
+    let subscription = await reg.pushManager.getSubscription();
+    if (subscription && !sameKey(subscription.options?.applicationServerKey, key)) {
+      await subscription.unsubscribe();
+      subscription = null;
+    }
+    subscription ??= await withTimeout(fresh(), 20_000, 'subscribe');
+    step = 'register';
+    let res = await postSub(subscription, state);
+    if (res.status === 409) {
+      await subscription.unsubscribe();
+      subscription = await withTimeout(fresh(), 20_000, 'subscribe');
+      res = await postSub(subscription, state);
+    }
+    if (!res.ok) throw new Error(`server ${res.status}`);
+    return (await res.json()).id;
+  } catch (err) {
+    report(step, err);
+    throw Object.assign(new Error(err?.message ?? String(err)), { step, name: err?.name });
   }
-  subscription ??= await fresh();
-  let res = await postSub(subscription, state);
-  if (res.status === 409) {
-    await subscription.unsubscribe();
-    subscription = await fresh();
-    res = await postSub(subscription, state);
-  }
-  if (!res.ok) return null;
-  return (await res.json()).id;
 }
 
 export async function disablePush() {
