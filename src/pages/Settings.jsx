@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Sun, Moon, SunMoon, Bell, Trash2, Sparkles, Utensils, CircleDot, Pill } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useT, GOALS } from '../i18n';
+import InstallBanner from '../components/InstallBanner';
 import { Segmented, toast, Reveal, Confirm, Sheet } from '../components/ui';
 import Questionnaire from '../components/Questionnaire';
 import { requestPermission } from '../lib/notify';
@@ -99,6 +100,8 @@ export default function Settings() {
         />
       </Reveal>
 
+      <InstallBanner compact />
+
       <Reveal className="card">
         <h3>
           <Bell size={18} /> {t('notifications')}
@@ -115,8 +118,9 @@ export default function Settings() {
               {s.pushId ? t('pushOn') : t('pushOff')}
               {!s.pushId && s.pushError && (
                 <>
-                  {s.pushError.startsWith('permission') && <small className="push-hint">{t('pushPermHint')}</small>}
-                  <small className="push-error">{s.pushError}</small>
+                  {/* Friendly reason; technical detail only for unexpected failures (kept for diagnosis). */}
+                  <small className="push-hint">{s.pushError === 'permission: denied' ? t('pushPermHint') : s.pushError.startsWith('permission') ? t('pushPermAsk') : t('pushFailHint')}</small>
+                  {!s.pushError.startsWith('permission') && <small className="push-error">{s.pushError}</small>}
                 </>
               )}
             </span>

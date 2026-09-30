@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import './lib/install'; // start listening for the install prompt before the app renders
 import './styles.css';
 
 // Self-heal: if styles are missing (seen on some phones), report what the browser sees to the

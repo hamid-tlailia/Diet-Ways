@@ -11,6 +11,7 @@ import { buildProfile, buildInsights, timeOfDay } from '../lib/coach';
 import MessageList from '../components/MessageList';
 import StageIcon from '../components/StageIcon';
 import { stagger } from '../components/ui';
+import InstallBanner from '../components/InstallBanner';
 
 export const fmtDuration = (ms) => {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -48,6 +49,7 @@ export default function Home({ go, theme }) {
   let i = 0;
   return (
     <div className="bento">
+      <InstallBanner />
       <motion.section {...stagger(i++)} className="card hero span-2">
         <span className="badge">{theme === 'day' ? '☀️ ' + t('dayTheme') : '🌙 ' + t('nightTheme')}</span>
         <h1>
