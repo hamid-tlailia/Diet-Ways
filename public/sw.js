@@ -66,6 +66,8 @@ self.addEventListener('push', (e) => {
         icon: '/icon-192.png',
         badge: '/badge-96.png',
         tag: data.kind === 'coach' ? 'coach' : `fast-${data.kind}`,
+        // Alert again (sound + pop-up) when a newer message replaces one with the same tag.
+        renotify: true,
         data,
       });
     })(),
