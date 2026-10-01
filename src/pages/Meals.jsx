@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Camera, ImagePlus, RefreshCw, ChevronDown, Clock, ShieldAlert, Sparkles, Pencil, Undo2, Trash2, Plus, Check } from 'lucide-react';
 import { useStore, todayKey } from '../store/useStore';
 import { useT } from '../i18n';
-import { Segmented, stagger, toast } from '../components/ui';
+import { Segmented, Sheet, stagger, toast } from '../components/ui';
 import { MEAL_TYPES } from '../lib/meals';
 import Questionnaire from '../components/Questionnaire';
 import MealEditor from '../components/MealEditor';
@@ -164,6 +164,7 @@ function PlanView({ plan, loggable = false }) {
   const editor = (idx) => (
     <MealEditor
       key={`ed-${idx}`}
+      inSheet
       meal={idx === 'new' ? {} : plan.meals[idx]}
       extra={idx === 'new' ? { source: 'manual' } : { source: plan.meals[idx].source ?? 'manual', thumb: plan.meals[idx].thumb, description: plan.meals[idx].logged ? plan.meals[idx].description : '', ingredients: plan.meals[idx].ingredients }}
       title={idx === 'new' || !plan.meals[idx].logged ? t('logTitle') : t('editTitle')}
@@ -199,30 +200,27 @@ function PlanView({ plan, loggable = false }) {
         {plan.tip && <p className="muted small">💡 {plan.tip}</p>}
       </section>
       <div className="meal-list">
-        {plan.meals.map((m, i) =>
-          editing === i ? (
-            editor(i)
-          ) : (
-            <MealCard
-              key={`${i}-${m.name}`}
-              meal={m}
-              i={i}
-              eaten={eaten.has(i)}
-              onEaten={loggable ? () => toggleMealEaten(i) : null}
-              onEdit={loggable ? () => setEditing(i) : null}
-              onUndo={loggable ? () => unlogTodayMeal(i) : null}
-            />
-          ),
-        )}
-      </div>
-      {loggable &&
-        (editing === 'new' ? (
-          editor('new')
-        ) : (
-          <button className="btn ghost" onClick={() => setEditing('new')}>
-            <Plus size={16} /> {t('logOther')}
-          </button>
+        {plan.meals.map((m, i) => (
+          <MealCard
+            key={`${i}-${m.name}`}
+            meal={m}
+            i={i}
+            eaten={eaten.has(i)}
+            onEaten={loggable ? () => toggleMealEaten(i) : null}
+            onEdit={loggable ? () => setEditing(i) : null}
+            onUndo={loggable ? () => unlogTodayMeal(i) : null}
+          />
         ))}
+      </div>
+      {loggable && (
+        <button className="btn ghost" onClick={() => setEditing('new')}>
+          <Plus size={16} /> {t('logOther')}
+        </button>
+      )}
+      {/* Logging something else / editing a meal happens in a modal sheet. */}
+      <Sheet open={editing !== null && (editing === 'new' || !!plan.meals[editing])} onClose={() => setEditing(null)}>
+        {editing !== null && (editing === 'new' || plan.meals[editing]) && editor(editing)}
+      </Sheet>
     </>
   );
 }
@@ -376,7 +374,7 @@ function Scan() {
         <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
         <input ref={gallery} type="file" accept="image/*" hidden onChange={onFile} />
       </section>
-      {shown && !busy && mode !== 'edit' && (
+      {shown && !busy && (
         <ScanResult scan={shown}>
           {/* The scanned meal can be corrected, then logged as eaten — replacing today's matching suggestion. */}
           {mode === 'added' ? (
@@ -392,17 +390,20 @@ function Scan() {
           )}
         </ScanResult>
       )}
-      {shown && !busy && mode === 'edit' && (
-        <MealEditor
-          meal={shown}
-          extra={{ source: 'scan', thumb: shown.thumb, description: shown.verdict }}
-          onCancel={() => setMode(null)}
-          onSave={(meal) => {
-            announceLogged(logMeal(meal), t);
-            setMode('added');
-          }}
-        />
-      )}
+      <Sheet open={!!shown && !busy && mode === 'edit'} onClose={() => setMode(null)}>
+        {shown && (
+          <MealEditor
+            inSheet
+            meal={shown}
+            extra={{ source: 'scan', thumb: shown.thumb, description: shown.verdict }}
+            onCancel={() => setMode(null)}
+            onSave={(meal) => {
+              announceLogged(logMeal(meal), t);
+              setMode('added');
+            }}
+          />
+        )}
+      </Sheet>
     </>
   );
 }

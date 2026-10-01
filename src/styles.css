@@ -3103,3 +3103,12 @@ html[dir='rtl'] .dock-bubble {
 .install-card:has(.install-x) {
   padding-inline-end: 30px;
 }
+
+/* Meal editor inside a modal sheet */
+.meal-editor.in-sheet {
+  position: relative;
+  padding-top: 4px;
+}
+.meal-editor.in-sheet h3 {
+  padding-inline-end: 44px;
+}

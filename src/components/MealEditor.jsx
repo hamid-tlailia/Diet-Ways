@@ -42,7 +42,7 @@ function toMeal(d, extra) {
 }
 
 /** Edit a scanned, suggested or brand-new meal, then save it as eaten. `extra` carries fields like thumb/source. */
-export default function MealEditor({ meal, extra = {}, title, saveLabel, onSave, onCancel }) {
+export default function MealEditor({ meal, extra = {}, title, saveLabel, onSave, onCancel, inSheet = false }) {
   const { t } = useT();
   const [d, setD] = useState(() => fromMeal(meal));
   const [busy, setBusy] = useState(false);
@@ -75,12 +75,15 @@ export default function MealEditor({ meal, extra = {}, title, saveLabel, onSave,
   };
 
   return (
-    <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card meal-editor">
+    // Inside a Sheet (modal) the sheet supplies the card and the close button.
+    <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className={inSheet ? 'meal-editor in-sheet' : 'card meal-editor'}>
       <div className="row-between">
         <h3>{title ?? t('editTitle')}</h3>
-        <button className="icon-btn" onClick={onCancel} aria-label={t('cancel')}>
-          <X size={18} />
-        </button>
+        {!inSheet && (
+          <button className="icon-btn" onClick={onCancel} aria-label={t('cancel')}>
+            <X size={18} />
+          </button>
+        )}
       </div>
 
       <span className="field-label">{t('mealTypeLbl')}</span>
