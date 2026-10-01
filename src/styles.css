@@ -3121,50 +3121,48 @@ html[dir='rtl'] .dock-bubble {
 .act-tiles {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 12px;
+  text-align: center;
 }
+/* Same look as the stats tiles above: icon on top, number, then label. */
 .act-tile {
+  all: unset;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 12px;
-  border-radius: 18px;
-  background: var(--surface-strong);
-  border: 1px solid var(--border);
+  min-height: 150px;
   min-width: 0;
+  padding: 10px 4px;
+  border-radius: 18px;
+  background: var(--surface);
+  text-align: center;
 }
 .act-btn {
-  all: unset;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px;
-  border-radius: 18px;
-  background: var(--surface-strong);
-  border: 1px solid var(--border);
   cursor: pointer;
-  min-width: 0;
 }
 .act-tile strong {
-  font-size: 1.35rem;
+  font-size: 1.9rem;
   font-weight: 800;
-  line-height: 1.1;
+}
+.act-tile strong.long {
+  font-size: 1.5rem;
 }
 .act-tile > span {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   flex-wrap: wrap;
   gap: 4px;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 .act-tile .bar {
+  width: 70%;
   height: 6px;
-  margin-top: 4px;
-}
-.act-ico {
-  width: 20px;
-  height: 20px;
+  margin-top: 6px;
 }
 .act-delta {
   display: inline-flex;

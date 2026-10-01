@@ -45,8 +45,8 @@ export default function ActivityCard({ go, motionProps }) {
 
       <div className="act-tiles">
         <div className="act-tile">
-          <Footprints className="act-ico" style={{ color: '#22c55e' }} />
-          <strong className="num">{steps == null ? '—' : fmt(steps)}</strong>
+          <Footprints className="stat-ico" style={{ color: '#22c55e' }} />
+          <strong className={steps >= 10000 ? 'num long' : 'num'}>{steps == null ? '—' : fmt(steps)}</strong>
           <span>{t('stepsUnit')}</span>
           {steps != null && (
             <div className="bar">
@@ -55,12 +55,12 @@ export default function ActivityCard({ go, motionProps }) {
           )}
         </div>
         <div className="act-tile">
-          <Flame className="act-ico" style={{ color: '#f97316' }} />
+          <Flame className="stat-ico" style={{ color: '#f97316' }} />
           <strong className="num">{steps == null ? '—' : `${kg ? '' : '≈'}${fmt(stepKcal(steps, kg))}`}</strong>
           <span>{t('kcalBurned')}</span>
         </div>
         <button className="act-tile act-btn" onClick={() => go('coach')}>
-          <Scale className="act-ico" style={{ color: '#8b5cf6' }} />
+          <Scale className="stat-ico" style={{ color: '#8b5cf6' }} />
           <strong className="num">{kg ?? '—'}</strong>
           <span>
             {kg ? t('kg') : t('logWeight')}
