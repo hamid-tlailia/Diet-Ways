@@ -12,6 +12,7 @@ import MessageList from '../components/MessageList';
 import StageIcon from '../components/StageIcon';
 import { stagger } from '../components/ui';
 import InstallBanner from '../components/InstallBanner';
+import ActivityCard from '../components/ActivityCard';
 
 export const fmtDuration = (ms) => {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -109,6 +110,8 @@ export default function Home({ go, theme }) {
           <span>{t('totalHours')}</span>
         </div>
       </motion.section>
+
+      <ActivityCard go={go} motionProps={stagger(i++)} />
 
       <motion.section {...stagger(i++)} className={activeNow ? 'card active-day done' : 'card active-day'}>
         <div className="row-between">

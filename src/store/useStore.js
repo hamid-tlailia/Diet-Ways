@@ -48,6 +48,7 @@ const initialState = {
   // Progress
   weights: [], // { date: dayKey, kg }
   weighDay: null, // 0–6: the weekly weigh-in day (reminded that morning)
+  activity: null, // from the Android app: { app, perm, days: { dayKey: steps }, at, asked } (see lib/activity.js)
   badges: {}, // badgeId -> unlocked at (ms)
   badgeQueue: [], // unlocked but not yet celebrated
   badgesInit: false,

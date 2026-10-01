@@ -3112,3 +3112,101 @@ html[dir='rtl'] .dock-bubble {
 .meal-editor.in-sheet h3 {
   padding-inline-end: 44px;
 }
+
+/* Activity card (steps from the Android app, calories, weight) */
+.activity {
+  display: grid;
+  gap: 14px;
+}
+.act-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.act-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 18px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  min-width: 0;
+}
+.act-btn {
+  all: unset;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 18px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  min-width: 0;
+}
+.act-tile strong {
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.act-tile > span {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.act-tile .bar {
+  height: 6px;
+  margin-top: 4px;
+}
+.act-ico {
+  width: 20px;
+  height: 20px;
+}
+.act-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-style: normal;
+  font-weight: 700;
+}
+.act-delta.down {
+  color: var(--ok);
+}
+.act-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  height: 74px;
+}
+.act-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  height: 100%;
+}
+.act-day span {
+  display: block;
+  width: 100%;
+  max-width: 18px;
+  border-radius: 6px;
+  background: var(--ring-track);
+}
+.act-day span.hit {
+  background: #22c55e;
+}
+.act-day.today span {
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+}
+.act-day small {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+.activity.done {
+  border-color: rgba(34, 197, 94, 0.45);
+}

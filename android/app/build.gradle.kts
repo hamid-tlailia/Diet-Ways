@@ -1,5 +1,6 @@
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.android")
 }
 
 // The live site the app opens. Must match public/.well-known/assetlinks.json on that site.
@@ -13,8 +14,8 @@ android {
         applicationId = "com.dietways.app"
         minSdk = 21
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
         manifestPlaceholders["hostName"] = siteHost
         resValue("string", "launchUrl", "https://$siteHost/")
         resValue("string", "siteUrl", "https://$siteHost")
@@ -47,9 +48,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 }
 
 dependencies {
     // Trusted Web Activity launcher, splash screen and notification delegation.
     implementation("com.google.androidbrowserhelper:androidbrowserhelper:2.5.0")
+    // Samples the phone's step counter every 15 minutes, even when the app is closed.
+    implementation("androidx.work:work-runtime:2.9.1")
 }
