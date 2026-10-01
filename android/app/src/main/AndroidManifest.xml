@@ -86,7 +86,7 @@
 
         <!-- Lets the site's push notifications appear as Diet Ways notifications -->
         <service
-            android:name="com.google.androidbrowserhelper.trusted.DelegationService"
+            android:name=".AlertsDelegationService"
             android:enabled="true"
             android:exported="true">
             <meta-data android:name="android.support.customtabs.trusted.SMALL_ICON" android:resource="@drawable/ic_notification_icon" />
