@@ -1088,10 +1088,16 @@ html[dir='rtl'] .eyebrow {
   transform: translate(-50%, -50%) scale(1.15);
 }
 .ring-mark.reached {
-  color: #fff;
-  background: var(--c);
-  border-color: transparent;
-  box-shadow: 0 0 16px var(--c);
+  /* Light disc, coloured rim and a full-colour icon, so the emblem stays readable on top of the progress line. */
+  width: 42px;
+  height: 42px;
+  color: var(--c);
+  background: var(--bg-2);
+  border: 3px solid var(--c);
+  box-shadow: 0 0 0 3px var(--bg-2), 0 0 18px color-mix(in srgb, var(--c) 70%, transparent);
+}
+.ring-mark.reached svg {
+  stroke-width: 3.4;
 }
 .ring-center {
   position: absolute;
