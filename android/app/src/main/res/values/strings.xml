@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Diet Ways</string>
+    <string name="assetStatements" translatable="false">[{ \"relation\": [\"delegate_permission/common.handle_all_urls\"], \"target\": { \"namespace\": \"web\", \"site\": \"https://diet-plans-latest.vercel.app\" } }]</string>
+    <string name="shortcut_fast">ابدأ الصيام</string>
+    <string name="shortcut_scan">صوّر وجبة</string>
+    <string name="shortcut_water">كوب ماء</string>
+    <string name="shortcut_meals">وجباتي</string>
+</resources>
