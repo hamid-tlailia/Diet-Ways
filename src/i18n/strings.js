@@ -232,6 +232,7 @@ export const STRINGS = {
   suitable_yes: { ar: 'مناسبة لنظامك ✓', en: 'Fits your plan ✓' },
   suitable_moderate: { ar: 'مقبولة باعتدال', en: 'OK in moderation' },
   suitable_no: { ar: 'غير مناسبة لنظامك', en: "Doesn't fit your plan" },
+  shopNonePicked: { ar: 'لم تختر شيئًا بعد', en: 'Nothing ticked yet' },
   pantryHint: { ar: 'وجباتك اليومية تُقترح من المشتريات التي أشّرت عليها ✓', en: 'Your daily meals are suggested from the groceries you ticked ✓' },
   pantryEmpty: { ar: 'أشّر على ما اشتريته ✓ لتُقترح وجباتك اليومية منه', en: 'Tick what you bought ✓ and your daily meals will be built from it' },
   pantryPlan: { ar: 'اقترح وجبات اليوم من مشترياتي', en: "Plan today's meals from my groceries" },

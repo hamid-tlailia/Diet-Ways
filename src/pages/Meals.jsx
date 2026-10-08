@@ -418,6 +418,7 @@ function Shopping({ onPlanned }) {
   const toggle = useStore((s) => s.toggleShopping);
   const [busy, setBusy] = useState(false);
   const [planning, setPlanning] = useState(false);
+  const [openGroups, setOpenGroups] = useState([]);
   const setMealPlan = useStore((s) => s.setMealPlan);
   const stale = !list || Date.now() - list.at > 7 * 864e5;
 
@@ -514,24 +515,53 @@ function Shopping({ onPlanned }) {
           <Sparkles size={16} className={planning ? 'spin' : ''} /> {planning ? t('planLoading') : t('pantryPlan')}
         </button>
       </section>
-      {list.groups.map((g, gi) => (
-        <section key={gi} className="card shop-group">
-          <h3>
-            <span>{g.emoji}</span> {g.name}
-          </h3>
-          <ul>
-            {g.items.map((it, ii) => (
-              <li key={ii}>
-                <button className={it.done ? 'shop-item done' : 'shop-item'} onClick={() => toggle(gi, ii)} aria-pressed={it.done}>
-                  <span className="shop-check">{it.done ? '✓' : ''}</span>
-                  <span className="shop-name">{it.name}</span>
-                  {it.qty && <small className="muted">{it.qty}</small>}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      {/* Each store section is an accordion; its header shows what's been ticked, with the section icon. */}
+      {list.groups.map((g, gi) => {
+        const picked = g.items.filter((i) => i.done);
+        const isOpen = openGroups.includes(gi);
+        return (
+          <section key={gi} className={isOpen ? 'card shop-group open' : 'card shop-group'}>
+            <button className="shop-acc-head" onClick={() => setOpenGroups(isOpen ? openGroups.filter((x) => x !== gi) : [...openGroups, gi])} aria-expanded={isOpen}>
+              <span className="shop-acc-emoji">{g.emoji}</span>
+              <span className="shop-acc-title">
+                <strong>{g.name}</strong>
+                {picked.length > 0 ? (
+                  <span className="shop-picked">
+                    {picked.map((i, k) => (
+                      <span key={k} className="pill ok">
+                        ✓ {i.name}
+                      </span>
+                    ))}
+                  </span>
+                ) : (
+                  <small className="muted">{t('shopNonePicked')}</small>
+                )}
+              </span>
+              <span className="row-gap">
+                <span className="chip num">
+                  {picked.length}/{g.items.length}
+                </span>
+                <ChevronDown size={18} className={isOpen ? 'chev up' : 'chev'} />
+              </span>
+            </button>
+            <AnimatePresence initial={false}>
+              {isOpen && (
+                <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
+                  {g.items.map((it, ii) => (
+                    <li key={ii}>
+                      <button className={it.done ? 'shop-item done' : 'shop-item'} onClick={() => toggle(gi, ii)} aria-pressed={it.done}>
+                        <span className="shop-check">{it.done ? '✓' : ''}</span>
+                        <span className="shop-name">{it.name}</span>
+                        {it.qty && <small className="muted">{it.qty}</small>}
+                      </button>
+                    </li>
+                  ))}
+                </motion.ul>
+              )}
+            </AnimatePresence>
+          </section>
+        );
+      })}
     </>
   );
 }
