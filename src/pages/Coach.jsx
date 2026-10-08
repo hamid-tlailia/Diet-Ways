@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Bot, Sparkles } from 'lucide-react';
 import { useStore } from '../store/useStore';
@@ -6,7 +7,9 @@ import { dietById, DIETS } from '../data/diets';
 import { STAGES } from '../data/fasting';
 import { buildProfile, buildInsights } from '../lib/coach';
 import MessageList from '../components/MessageList';
-import { stagger } from '../components/ui';
+import { Segmented, stagger } from '../components/ui';
+import { FastHistory } from './Fasting';
+import { ScanHistory } from './Meals';
 import { WeightCard, WeeklySummary } from '../components/Progress';
 import { BadgeGrid } from '../components/Badges';
 
@@ -17,6 +20,7 @@ export default function Coach() {
   const state = useStore();
   const profile = buildProfile(state);
   const insights = buildInsights(profile, lang);
+  const [rec, setRec] = useState('fasts');
 
   // Normalised interest bars across diets, stages and sections.
   const bars = [
@@ -98,13 +102,25 @@ export default function Coach() {
         )}
       </motion.section>
 
-      <motion.section {...stagger(3)} className="card">
-        <h3>{t('messages')}</h3>
-        <MessageList messages={state.messages} />
-      </motion.section>
-
-      <motion.section {...stagger(3)} className="card">
-        <BadgeGrid />
+      {/* Records: fasting history, scanned meals, badges and every coach message, in one place. */}
+      <motion.section {...stagger(3)} className="card records">
+        <h3>📜 {t('records')}</h3>
+        <Segmented
+          value={rec}
+          onChange={setRec}
+          options={[
+            { value: 'fasts', label: t('recFasting') },
+            { value: 'scans', label: t('recScans') },
+            { value: 'badges', label: t('recBadges') },
+            { value: 'messages', label: t('recMessages') },
+          ]}
+        />
+        <div className="records-body">
+          {rec === 'fasts' && <FastHistory />}
+          {rec === 'scans' && <ScanHistory />}
+          {rec === 'badges' && <BadgeGrid />}
+          {rec === 'messages' && <MessageList messages={state.messages} limit={20} />}
+        </div>
       </motion.section>
     </div>
   );

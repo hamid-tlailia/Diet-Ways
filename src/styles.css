@@ -3112,3 +3112,66 @@ html[dir='rtl'] .dock-bubble {
 .meal-editor.in-sheet h3 {
   padding-inline-end: 44px;
 }
+
+/* ───────────── Meals history: previous days accordion ───────────── */
+.chev {
+  transition: transform 0.25s;
+}
+.chev.up {
+  transform: rotate(180deg);
+}
+.past-acc {
+  margin-top: 14px;
+  padding: 0;
+  overflow: hidden;
+}
+.acc-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 18px;
+  font-weight: 800;
+  font-size: 1rem;
+  text-align: start;
+}
+.acc-body {
+  overflow: hidden;
+  padding: 0 12px;
+}
+.past-acc.open .acc-body {
+  padding-bottom: 12px;
+}
+.date-jump {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin: 0 6px 12px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.date-jump input[type='date'] {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.past-acc .hist-plan {
+  box-shadow: none;
+}
+
+/* ───────────── Coach records ───────────── */
+.records .segmented {
+  margin: 4px 0 14px;
+}
+.records .segmented-label {
+  font-size: 0.8rem;
+}
+.records-body .history-list {
+  display: grid;
+  gap: 10px;
+}
+.records .segmented button {
+  padding: 9px 6px;
+  font-size: 0.8rem;
+}

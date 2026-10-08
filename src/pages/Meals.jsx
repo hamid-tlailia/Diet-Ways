@@ -278,7 +278,7 @@ function Today() {
   );
 }
 
-function ScanResult({ scan, children }) {
+export function ScanResult({ scan, children }) {
   const { t } = useT();
   return (
     <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className={`card scan-result fit-${scan.suitable}`}>
@@ -342,7 +342,7 @@ function Scan() {
     setBusy(true);
     try {
       const scan = await scanMeal(file, useStore.getState(), () => toast({ title: '⏳', body: t('aiRetrying'), duration: 3000 }));
-      addScan(scan);
+      if (scan.food) addScan(scan); // a photo with no food isn't kept in the scan history
       setResult(scan);
     } catch (err) {
       toast({ title: '⚠️', body: t({ rate: 'rateLimited', busy: 'aiBusy' }[err.message] ?? 'scanFailed') });
@@ -377,7 +377,7 @@ function Scan() {
       {shown && !busy && (
         <ScanResult scan={shown}>
           {/* The scanned meal can be corrected, then logged as eaten — replacing today's matching suggestion. */}
-          {mode === 'added' ? (
+          {!shown.food ? null : mode === 'added' ? (
             <p className="added-note">
               <Check size={16} /> {t('addedToday')}
             </p>
@@ -512,59 +512,113 @@ function Shopping() {
   );
 }
 
+// Today's plan first; earlier days sit in an accordion, with a date picker to jump to any day.
 function History() {
   const { t, lang } = useT();
   const mealPlans = useStore((s) => s.mealPlans);
-  const plans = Object.values(mealPlans).sort((a, b) => (a.date < b.date ? 1 : -1));
-  const scans = useStore((s) => s.scans);
-  const [open, setOpen] = useState(null);
+  const today = todayKey();
+  const past = Object.values(mealPlans)
+    .filter((p) => p.date < today)
+    .sort((a, b) => (a.date < b.date ? 1 : -1));
+  const todayPlan = mealPlans[today];
+  const [pastOpen, setPastOpen] = useState(false);
+  const [open, setOpen] = useState(today);
+  const [picked, setPicked] = useState('');
   const fmtDay = (d) => new Date(`${d}T12:00`).toLocaleDateString(lang === 'ar' ? 'ar' : 'en', { weekday: 'long', day: 'numeric', month: 'short' });
-  const fmt = (ms) => new Date(ms).toLocaleString(lang === 'ar' ? 'ar' : 'en', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const pickedPlan = picked ? mealPlans[picked] : null;
+
+  const DayRow = ({ p }) => (
+    <section className="card hist-plan">
+      <button className="meal-head" onClick={() => setOpen(open === p.date ? null : p.date)} aria-expanded={open === p.date}>
+        <span className="meal-emoji">📅</span>
+        <span className="meal-title">
+          <strong>{fmtDay(p.date)}</strong>
+          <small>{p.meals.map((m) => m.name).join(' · ')}</small>
+        </span>
+        <span className="meal-kcal num">
+          {p.totals.calories}
+          <small> {t('kcal')}</small>
+        </span>
+        <ChevronDown size={18} className={open === p.date ? 'chev up' : 'chev'} />
+      </button>
+      {open === p.date && <PlanView plan={p} />}
+    </section>
+  );
+
   return (
     <>
-      <h3 className="section-title">{t('plans')}</h3>
-      {plans.length === 0 && <p className="muted">{t('noPlans')}</p>}
-      <div className="history-list">
-        {plans.map((p) => (
-          <section key={p.date} className="card hist-plan">
-            <button className="meal-head" onClick={() => setOpen(open === p.date ? null : p.date)}>
-              <span className="meal-emoji">📅</span>
-              <span className="meal-title">
-                <strong>{fmtDay(p.date)}</strong>
-                <small>{p.meals.map((m) => m.name).join(' · ')}</small>
-              </span>
-              <span className="meal-kcal num">
-                {p.totals.calories}
-                <small> {t('kcal')}</small>
-              </span>
-            </button>
-            {open === p.date && <PlanView plan={p} />}
-          </section>
-        ))}
-      </div>
-      <h3 className="section-title">{t('scans')}</h3>
-      {scans.length === 0 && <p className="muted">{t('noScans')}</p>}
-      <div className="history-list">
-        {scans.map((s) => (
-          <section key={s.id} className={`card hist-scan fit-${s.suitable}`}>
-            <button className="meal-head" onClick={() => setOpen(open === s.id ? null : s.id)}>
-              {s.thumb ? <img src={s.thumb} alt="" className="thumb" /> : <span className="meal-emoji">📷</span>}
-              <span className="meal-title">
-                <strong>{s.name}</strong>
-                <small>
-                  {fmt(s.at)} · {t(`suitable_${s.suitable}`)}
-                </small>
-              </span>
-              <span className="meal-kcal num">
-                {s.calories}
-                <small> {t('kcal')}</small>
-              </span>
-            </button>
-            {open === s.id && <ScanResult scan={s} />}
-          </section>
-        ))}
-      </div>
+      <h3 className="section-title">{t('today')}</h3>
+      {todayPlan ? (
+        <DayRow p={todayPlan} />
+      ) : (
+        <p className="muted">{t('noPlanToday')}</p>
+      )}
+
+      <section className={pastOpen ? 'card past-acc open' : 'card past-acc'}>
+        <button className="acc-head" onClick={() => setPastOpen(!pastOpen)} aria-expanded={pastOpen}>
+          <span>🗓️ {t('pastDays')}</span>
+          <span className="row-gap">
+            <span className="chip">{past.length}</span>
+            <ChevronDown size={18} className={pastOpen ? 'chev up' : 'chev'} />
+          </span>
+        </button>
+        <AnimatePresence initial={false}>
+          {pastOpen && (
+            <motion.div className="acc-body" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
+              {past.length === 0 ? (
+                <p className="muted">{t('noPlans')}</p>
+              ) : (
+                <>
+                  <label className="date-jump">
+                    <span>{t('goToDay')}</span>
+                    <input type="date" value={picked} min={past.at(-1).date} max={past[0].date} onChange={(e) => setPicked(e.target.value)} />
+                    {picked && (
+                      <button className="chip" onClick={() => setPicked('')}>
+                        {t('showAll')}
+                      </button>
+                    )}
+                  </label>
+                  <div className="history-list">
+                    {picked ? pickedPlan ? <DayRow p={pickedPlan} /> : <p className="muted">{t('noPlanThatDay')}</p> : past.map((p) => <DayRow key={p.date} p={p} />)}
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </section>
     </>
+  );
+}
+
+// Scanned meals (food only), newest first — shown in the Coach's records.
+export function ScanHistory() {
+  const { t, lang } = useT();
+  const scans = useStore((s) => s.scans).filter((x) => x.food !== false && (x.calories > 0 || x.items?.length));
+  const [open, setOpen] = useState(null);
+  const fmt = (ms) => new Date(ms).toLocaleString(lang === 'ar' ? 'ar' : 'en', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  if (!scans.length) return <p className="muted">{t('noScans')}</p>;
+  return (
+    <div className="history-list">
+      {scans.map((s) => (
+        <section key={s.id} className={`card hist-scan fit-${s.suitable}`}>
+          <button className="meal-head" onClick={() => setOpen(open === s.id ? null : s.id)}>
+            {s.thumb ? <img src={s.thumb} alt="" className="thumb" /> : <span className="meal-emoji">📷</span>}
+            <span className="meal-title">
+              <strong>{s.name}</strong>
+              <small>
+                {fmt(s.at)} · {t(`suitable_${s.suitable}`)}
+              </small>
+            </span>
+            <span className="meal-kcal num">
+              {s.calories}
+              <small> {t('kcal')}</small>
+            </span>
+          </button>
+          {open === s.id && <ScanResult scan={s} />}
+        </section>
+      ))}
+    </div>
   );
 }
 

@@ -5,7 +5,7 @@ import { useStore, todayKey } from './store/useStore';
 import { useT, tr } from './i18n';
 import { useResolvedTheme } from './lib/hooks';
 import { generateMessage } from './lib/coach';
-import { registerSW, systemNotify } from './lib/notify';
+import { registerSW, systemNotify, buzz } from './lib/notify';
 import { syncPush, fetchInbox, enablePush, pushSupported } from './lib/push';
 import { planNotifications } from './lib/rules';
 import { ensureTodayPlan } from './lib/mealsApi';
@@ -57,6 +57,7 @@ function useLocalNotifications() {
             useStore.getState().addMessage({ text: body, source: 'local', kind: item.kind });
           }
           toast({ title: item.title, body });
+          buzz();
           if (s.notifEnabled) systemNotify(item.title, body);
         }
       } finally {
@@ -87,6 +88,7 @@ function usePushBridge() {
       if (e.data?.type !== 'push' || !p) return;
       if (['coach', 'insight', 'weekly', 'meals'].includes(p.kind)) pullInbox();
       toast({ title: p.title, body: p.body });
+      buzz();
     };
     navigator.serviceWorker?.addEventListener('message', onMessage);
 
@@ -276,7 +278,7 @@ export default function App() {
   const pages = {
     home: <Home go={go} theme={theme} />,
     diets: <Diets detail={dietDetail} setDetail={setDietDetail} go={go} />,
-    fasting: <Fasting />,
+    fasting: <Fasting go={go} />,
     meals: <Meals key={dietDetail ?? ''} initialTab={dietDetail} />,
     coach: <Coach />,
     settings: <Settings />,

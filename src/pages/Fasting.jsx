@@ -109,7 +109,7 @@ function Ring({ hours, goal, running, onStage }) {
   );
 }
 
-export default function Fasting() {
+export default function Fasting({ go }) {
   const { t, lang } = useT();
   const { protocolId, fastStart, fastGoal, history, setProtocol, startFast, endFast, track } = useStore();
   const now = useNow(1000);
@@ -232,31 +232,10 @@ export default function Fasting() {
         </AnimatePresence>
       </Reveal>
 
-      <h3 className="section-title">{t('history')}</h3>
-      <Reveal className="card">
-        {history.length === 0 ? (
-          <p className="muted center">{t('noHistory')}</p>
-        ) : (
-          <div className="history">
-            {history.slice(0, 10).map((h) => {
-              const hrs = (h.end - h.start) / 3.6e6;
-              const ok = hrs >= h.goal * 0.95;
-              return (
-                <div key={h.start} className="hist-row">
-                  <span className="muted small">{fmtDate(h.start)}</span>
-                  <div className="hist-bar">
-                    <span style={{ width: `${Math.min(100, (hrs / h.goal) * 100)}%` }} className={ok ? 'ok' : ''} />
-                  </div>
-                  <strong className="mono small">
-                    {hrs.toFixed(1)}/{h.goal}
-                    {t('hoursShort')} {ok ? '✓' : ''}
-                  </strong>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Reveal>
+      {/* Full fasting history lives in the Coach's records. */}
+      <button className="btn ghost" onClick={() => go?.('coach')}>
+        📜 {t('fastHistoryInCoach')}
+      </button>
 
       <Confirm
         open={confirmEnd}
@@ -286,6 +265,34 @@ export default function Fasting() {
           </div>
         )}
       </Sheet>
+    </div>
+  );
+}
+
+// Fasting history, newest first — shown in the Coach's records.
+export function FastHistory() {
+  const { t, lang } = useT();
+  const history = useStore((s) => s.history);
+  const fmtDate = (ms) => new Date(ms).toLocaleString(lang === 'ar' ? 'ar' : 'en', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  if (!history.length) return <p className="muted center">{t('noHistory')}</p>;
+  return (
+    <div className="history">
+      {history.map((h) => {
+        const hrs = (h.end - h.start) / 3.6e6;
+        const ok = hrs >= h.goal * 0.95;
+        return (
+          <div key={h.start} className="hist-row">
+            <span className="muted small">{fmtDate(h.start)}</span>
+            <div className="hist-bar">
+              <span style={{ width: `${Math.min(100, (hrs / h.goal) * 100)}%` }} className={ok ? 'ok' : ''} />
+            </div>
+            <strong className="mono small">
+              {hrs.toFixed(1)}/{h.goal}
+              {t('hoursShort')} {ok ? '✓' : ''}
+            </strong>
+          </div>
+        );
+      })}
     </div>
   );
 }
