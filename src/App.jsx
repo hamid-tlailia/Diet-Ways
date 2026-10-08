@@ -113,7 +113,7 @@ function usePushBridge() {
     pullInbox();
     ensureTodayPlan(store, store().setMealPlan)?.catch(() => null);
 
-    const keys = ['lang', 'name', 'goal', 'dietId', 'fastStart', 'fastGoal', 'protocolId', 'history', 'interests', 'checkins', 'notifEnabled', 'mealProfile', 'mealPlans', 'weights', 'weighDay'];
+    const keys = ['lang', 'name', 'goal', 'dietId', 'fastStart', 'fastGoal', 'protocolId', 'history', 'interests', 'checkins', 'notifEnabled', 'mealProfile', 'mealPlans', 'weights', 'weighDay', 'shopping'];
     let timer;
     const unsub = useStore.subscribe((s, prev) => {
       if (!s.pushId || !keys.some((k) => s[k] !== prev[k])) return;

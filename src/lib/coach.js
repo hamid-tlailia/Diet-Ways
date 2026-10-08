@@ -200,6 +200,8 @@ export function snapshot(s) {
     // Today's meals with their times, for meal-time and break-fast reminders.
     todayMeals: plans[0] ? { date: plans[0].date, meals: plans[0].meals.map((m) => ({ type: m.type, time: m.time, name: m.name })) } : null,
     recentMeals: plans.slice(0, 4).flatMap((p) => p.meals.map((m) => m.name)),
+    // Groceries ticked as bought in the shopping list: daily meals are built from them.
+    pantry: (s.shopping?.groups ?? []).flatMap((g) => g.items.filter((i) => i.done).map((i) => i.name)).slice(0, 60),
     tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
   };
 }

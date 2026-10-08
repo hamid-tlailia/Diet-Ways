@@ -105,10 +105,11 @@ export function mealPlanPrompt(state, lang, day, recentNames = []) {
       'Never include any allergen listed in allergiesStrictlyAvoid, and respect health conditions (e.g. low sodium for hypertension, low glycaemic for diabetes). ' +
       'Prefer the user\'s favourite foods, avoid disliked ones, use simple home ingredients common in Arab and Mediterranean kitchens, and do not repeat recent dishes. ' +
       'For intermittent fasting, place every meal inside the eating window and pick times accordingly. Calories must suit age, gender, weight, activity and goal. ' +
+      'If a list of groceries the user has bought is given, build the meals mainly from those ingredients (plus basic staples such as oil, spices, salt, onion, garlic, lemon) and name which bought items each meal uses in its ingredients. ' +
       `Write every text field in ${language}. Respond with JSON only, matching this shape: ` +
       '{"meals":[{"type":"breakfast|lunch|dinner|snack","time":"HH:MM","name":"","description":"","ingredients":[""],"calories":0,"protein":0,"carbs":0,"fat":0,"why":""}],' +
       '"totals":{"calories":0,"protein":0,"carbs":0,"fat":0},"tip":""}. Macros are grams. 3–4 meals.',
-    user: `Date: ${day}\nRecently suggested (avoid repeating): ${recentNames.join(', ') || 'none'}\nUser profile:\n${JSON.stringify(describeProfile(state), null, 2)}`,
+    user: `Date: ${day}\nRecently suggested (avoid repeating): ${recentNames.join(', ') || 'none'}\nGroceries bought (use these first): ${(state.pantry ?? []).join(', ') || 'none'}\nUser profile:\n${JSON.stringify(describeProfile(state), null, 2)}`,
   };
 }
 

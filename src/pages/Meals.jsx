@@ -410,13 +410,30 @@ function Scan() {
 }
 
 // Weekly grocery list built from the user's plans; refreshed automatically once a week.
-function Shopping() {
+// `onPlanned` switches back to Today once a plan from the bought groceries is ready.
+function Shopping({ onPlanned }) {
   const { t } = useT();
   const list = useStore((s) => s.shopping);
   const set = useStore((s) => s.set);
   const toggle = useStore((s) => s.toggleShopping);
   const [busy, setBusy] = useState(false);
+  const [planning, setPlanning] = useState(false);
+  const setMealPlan = useStore((s) => s.setMealPlan);
   const stale = !list || Date.now() - list.at > 7 * 864e5;
+
+  // Today's meals rebuilt from what was ticked as bought (already-eaten meals are kept).
+  const planFromPantry = async () => {
+    setPlanning(true);
+    try {
+      setMealPlan(await requestMealPlan(useStore.getState(), () => toast({ title: '⏳', body: t('aiRetrying'), duration: 3000 })));
+      toast({ title: '✓', body: t('pantryPlanned'), duration: 3500 });
+      onPlanned?.();
+    } catch (e) {
+      toast({ title: '⚠️', body: t({ rate: 'rateLimited', busy: 'aiBusy' }[e.message] ?? 'planFailed') });
+    } finally {
+      setPlanning(false);
+    }
+  };
 
   const make = async () => {
     setBusy(true);
@@ -490,6 +507,12 @@ function Shopping() {
             <RefreshCw size={16} className={busy ? 'spin' : ''} /> {t('newList')}
           </button>
         </div>
+      </section>
+      <section className="card pantry-card">
+        <p className="small">🍽️ {done ? t('pantryHint') : t('pantryEmpty')}</p>
+        <button className="btn primary" onClick={planFromPantry} disabled={!done || planning}>
+          <Sparkles size={16} className={planning ? 'spin' : ''} /> {planning ? t('planLoading') : t('pantryPlan')}
+        </button>
       </section>
       {list.groups.map((g, gi) => (
         <section key={gi} className="card shop-group">
@@ -656,7 +679,7 @@ export default function Meals({ initialTab }) {
           <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="meals-body">
             {tab === 'today' && <Today />}
             {tab === 'scan' && <Scan />}
-            {tab === 'shop' && <Shopping />}
+            {tab === 'shop' && <Shopping onPlanned={() => setTab('today')} />}
             {tab === 'history' && <History />}
           </motion.div>
         </>

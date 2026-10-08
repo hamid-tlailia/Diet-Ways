@@ -3271,3 +3271,12 @@ html[dir='rtl'] .dock-bubble {
 .activity.done {
   border-color: rgba(34, 197, 94, 0.45);
 }
+
+/* Shopping → meals from bought groceries */
+.pantry-card {
+  display: grid;
+  gap: 10px;
+}
+.pantry-card p {
+  margin: 0;
+}
