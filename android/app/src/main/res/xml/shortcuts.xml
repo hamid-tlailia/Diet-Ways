@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="fast"
+        android:enabled="true"
+        android:icon="@drawable/shortcut_fast"
+        android:shortcutShortLabel="@string/shortcut_fast">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="com.dietways.app"
+            android:targetClass="com.dietways.app.DietWaysLauncher"
+            android:data="https://diet-plans-latest.vercel.app/?do=fast#fasting" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="scan"
+        android:enabled="true"
+        android:icon="@drawable/shortcut_scan"
+        android:shortcutShortLabel="@string/shortcut_scan">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="com.dietways.app"
+            android:targetClass="com.dietways.app.DietWaysLauncher"
+            android:data="https://diet-plans-latest.vercel.app/#meals/scan" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="water"
+        android:enabled="true"
+        android:icon="@drawable/shortcut_water"
+        android:shortcutShortLabel="@string/shortcut_water">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="com.dietways.app"
+            android:targetClass="com.dietways.app.DietWaysLauncher"
+            android:data="https://diet-plans-latest.vercel.app/?do=water#home" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="meals"
+        android:enabled="true"
+        android:icon="@drawable/shortcut_meals"
+        android:shortcutShortLabel="@string/shortcut_meals">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="com.dietways.app"
+            android:targetClass="com.dietways.app.DietWaysLauncher"
+            android:data="https://diet-plans-latest.vercel.app/#meals" />
+    </shortcut>
+</shortcuts>

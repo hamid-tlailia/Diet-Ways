@@ -66,7 +66,8 @@ self.addEventListener('push', (e) => {
         icon: '/icon-192.png',
         badge: '/badge-96.png',
         tag: data.kind === 'coach' ? 'coach' : `fast-${data.kind}`,
-        renotify: true, // a reused tag still alerts (sound + vibration) instead of replacing silently
+        // Alert again (sound + pop-up + vibration) when a newer message replaces one with the same tag.
+        renotify: true,
         vibrate: [180, 80, 180],
         data,
       });

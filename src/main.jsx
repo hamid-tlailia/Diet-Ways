@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './lib/install'; // start listening for the install prompt before the app renders
+import { captureLaunchParams } from './lib/activity';
 import './styles.css';
 
 // Self-heal: if styles are missing (seen on some phones), report what the browser sees to the
@@ -30,6 +31,8 @@ window.addEventListener('load', () => {
   const unregister = navigator.serviceWorker?.getRegistrations?.().then((rs) => Promise.all(rs.map((r) => r.unregister()))) ?? Promise.resolve();
   Promise.allSettled([clear, unregister]).finally(() => window.location.reload());
 });
+
+captureLaunchParams();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Flame, Trophy, Clock, Droplet, Plus, Minus, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { Flame, Trophy, Clock, Droplet, Plus, Minus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStore, todayKey } from '../store/useStore';
 import { activeStreak, isActiveDay } from '../lib/dates';
 import { useT, MOODS } from '../i18n';
@@ -7,11 +7,11 @@ import { dietById } from '../data/diets';
 import { stageAt } from '../data/fasting';
 import { quoteOfDay } from '../data/quotes';
 import { useNow } from '../lib/hooks';
-import { buildProfile, buildInsights, timeOfDay } from '../lib/coach';
-import MessageList from '../components/MessageList';
+import { timeOfDay } from '../lib/coach';
 import StageIcon from '../components/StageIcon';
 import { stagger } from '../components/ui';
 import InstallBanner from '../components/InstallBanner';
+import ActivityCard from '../components/ActivityCard';
 
 export const fmtDuration = (ms) => {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -35,7 +35,6 @@ export default function Home({ go, theme }) {
   const activeNow = isActiveDay({ ...today, planned });
   const done = state.history.filter((h) => (h.end - h.start) / 3.6e6 >= h.goal * 0.95).length;
   const hours = Math.round(state.history.reduce((a, h) => a + (h.end - h.start) / 3.6e6, 0));
-  const insights = buildInsights(buildProfile(state), lang);
 
   const greeting = { morning: 'goodMorning', afternoon: 'goodAfternoon', evening: 'goodEvening', night: 'goodNight' }[timeOfDay()];
   const quote = quoteOfDay(theme);
@@ -110,6 +109,8 @@ export default function Home({ go, theme }) {
         </div>
       </motion.section>
 
+      <ActivityCard go={go} motionProps={stagger(i++)} />
+
       <motion.section {...stagger(i++)} className={activeNow ? 'card active-day done' : 'card active-day'}>
         <div className="row-between">
           <span className="eyebrow">🎯 {t('activeToday')}</span>
@@ -173,25 +174,6 @@ export default function Home({ go, theme }) {
         </div>
       </motion.section>
 
-      <motion.section {...stagger(i++)} className="card coach-card span-2 tall">
-        <div className="row-between">
-          <span className="eyebrow">
-            <Sparkles size={14} /> {t('insightTitle')}
-          </span>
-          <button className="chip" onClick={() => go('coach')}>
-            {t('navCoach')} <Chevron size={14} />
-          </button>
-        </div>
-        <ul className="insights">
-          {insights.slice(0, 2).map((x, k) => (
-            <li key={k}>
-              <span>{x.icon}</span>
-              {x.text}
-            </li>
-          ))}
-        </ul>
-        <MessageList messages={state.messages} />
-      </motion.section>
       <motion.section {...stagger(i++)} className="card mood">
         <span className="eyebrow">{today.mood ? t('checkedIn') : t('dailyCheckin')}</span>
         <div className="moods">

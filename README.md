@@ -41,3 +41,17 @@ npm run build
 Without a database/VAPID the app still works: notifications then fire only while the app is open. Without `GEMINI_API_KEY` the built-in local coach writes the messages.
 
 On iPhone, web push works only after **Share → Add to Home Screen** (iOS 16.4+).
+
+## Android app
+
+`android/` wraps the live site in a **Trusted Web Activity**: a real Android app that runs the
+site full-screen through Chrome. Push notifications, the camera, offline mode and the Vercel API
+all keep working, and site updates reach the app instantly without a new APK.
+
+- The APK is built by `.github/workflows/android.yml` (Actions tab → **Android APK** → `DietWays-apk`).
+  Push a `v*` tag to publish it under Releases.
+- The address bar is hidden only when the APK's signing key matches
+  `public/.well-known/assetlinks.json`. CI signs with the repo secrets
+  `DIETWAYS_KEYSTORE_BASE64` (base64 of the `.jks`) and `DIETWAYS_KEYSTORE_PASSWORD`.
+- To point the app at another domain, change `siteHost` in `android/app/build.gradle.kts`
+  and the site in `assetStatements` (`android/app/src/main/res/values/strings.xml`).
