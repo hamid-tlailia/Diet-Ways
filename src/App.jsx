@@ -278,7 +278,7 @@ export default function App() {
   const pages = {
     home: <Home go={go} theme={theme} />,
     diets: <Diets detail={dietDetail} setDetail={setDietDetail} go={go} />,
-    fasting: <Fasting go={go} />,
+    fasting: <Fasting />,
     meals: <Meals key={dietDetail ?? ''} initialTab={dietDetail} />,
     coach: <Coach />,
     settings: <Settings />,

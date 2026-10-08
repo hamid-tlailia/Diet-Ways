@@ -7,6 +7,7 @@ import { Segmented, Sheet, stagger, toast } from '../components/ui';
 import { MEAL_TYPES } from '../lib/meals';
 import Questionnaire from '../components/Questionnaire';
 import MealEditor from '../components/MealEditor';
+import { DatedHistory } from '../components/Accordion';
 import { ensureTodayPlan, requestMealPlan, requestShoppingList, scanMeal } from '../lib/mealsApi';
 
 function Macros({ p, c, f, fiber }) {
@@ -587,20 +588,22 @@ function History() {
           )}
         </AnimatePresence>
       </section>
+
+      <h3 className="section-title">{t('scans')}</h3>
+      <ScanHistory />
     </>
   );
 }
 
-// Scanned meals (food only), newest first — shown in the Coach's records.
-export function ScanHistory() {
+// Scanned meals (food only): today's (or the newest) shown, earlier ones in an accordion with a day picker.
+function ScanHistory() {
   const { t, lang } = useT();
   const scans = useStore((s) => s.scans).filter((x) => x.food !== false && (x.calories > 0 || x.items?.length));
   const [open, setOpen] = useState(null);
   const fmt = (ms) => new Date(ms).toLocaleString(lang === 'ar' ? 'ar' : 'en', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  if (!scans.length) return <p className="muted">{t('noScans')}</p>;
-  return (
+  const list = (items) => (
     <div className="history-list">
-      {scans.map((s) => (
+      {items.map((s) => (
         <section key={s.id} className={`card hist-scan fit-${s.suitable}`}>
           <button className="meal-head" onClick={() => setOpen(open === s.id ? null : s.id)}>
             {s.thumb ? <img src={s.thumb} alt="" className="thumb" /> : <span className="meal-emoji">📷</span>}
@@ -620,6 +623,7 @@ export function ScanHistory() {
       ))}
     </div>
   );
+  return <DatedHistory items={scans} at={(s) => s.at} render={list} pastTitle={`📷 ${t('pastScans')}`} empty={t('noScans')} />;
 }
 
 const MEAL_TABS = ['today', 'scan', 'shop', 'history'];

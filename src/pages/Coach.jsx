@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Bot, Sparkles } from 'lucide-react';
 import { useStore } from '../store/useStore';
@@ -7,9 +6,9 @@ import { dietById, DIETS } from '../data/diets';
 import { STAGES } from '../data/fasting';
 import { buildProfile, buildInsights } from '../lib/coach';
 import MessageList from '../components/MessageList';
-import { Segmented, stagger } from '../components/ui';
-import { FastHistory } from './Fasting';
-import { ScanHistory } from './Meals';
+import { stagger } from '../components/ui';
+import { Accordion, DatedHistory } from '../components/Accordion';
+import { BADGES } from '../lib/badges';
 import { WeightCard, WeeklySummary } from '../components/Progress';
 import { BadgeGrid } from '../components/Badges';
 
@@ -20,7 +19,6 @@ export default function Coach() {
   const state = useStore();
   const profile = buildProfile(state);
   const insights = buildInsights(profile, lang);
-  const [rec, setRec] = useState('fasts');
 
   // Normalised interest bars across diets, stages and sections.
   const bars = [
@@ -102,26 +100,15 @@ export default function Coach() {
         )}
       </motion.section>
 
-      {/* Records: fasting history, scanned meals, badges and every coach message, in one place. */}
-      <motion.section {...stagger(3)} className="card records">
-        <h3>📜 {t('records')}</h3>
-        <Segmented
-          value={rec}
-          onChange={setRec}
-          options={[
-            { value: 'fasts', label: t('recFasting') },
-            { value: 'scans', label: t('recScans') },
-            { value: 'badges', label: t('recBadges') },
-            { value: 'messages', label: t('recMessages') },
-          ]}
-        />
-        <div className="records-body">
-          {rec === 'fasts' && <FastHistory />}
-          {rec === 'scans' && <ScanHistory />}
-          {rec === 'badges' && <BadgeGrid />}
-          {rec === 'messages' && <MessageList messages={state.messages} limit={20} />}
-        </div>
+      <motion.section {...stagger(3)} className="card">
+        <h3>{t('messages')}</h3>
+        {/* Today's messages (or the latest) shown; older ones in an accordion with a day picker. */}
+        <DatedHistory items={state.messages} at={(m) => m.at} render={(list) => <MessageList messages={list} limit={list.length} />} pastTitle={`💬 ${t('pastMessages')}`} empty={t('noMessages')} />
       </motion.section>
+
+      <Accordion title={`🏅 ${t('recBadges')}`} count={`${Object.keys(state.badges ?? {}).length}/${BADGES.length}`}>
+        <BadgeGrid bare />
+      </Accordion>
     </div>
   );
 }

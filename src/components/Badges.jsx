@@ -78,18 +78,21 @@ export function BadgeCelebration() {
   );
 }
 
-export function BadgeGrid() {
+export function BadgeGrid({ bare = false }) {
   const { t } = useT();
   const badges = useStore((s) => s.badges);
   const count = Object.keys(badges).length;
   return (
     <>
-      <div className="row-between">
-        <h3>🏅 {t('badges')}</h3>
-        <span className="muted small">
-          {count}/{BADGES.length}
-        </span>
-      </div>
+      {/* `bare` drops the heading when an outer accordion already shows it. */}
+      {!bare && (
+        <div className="row-between">
+          <h3>🏅 {t('badges')}</h3>
+          <span className="muted small">
+            {count}/{BADGES.length}
+          </span>
+        </div>
+      )}
       <div className="badge-grid">
         {BADGES.map((b) => {
           const on = !!badges[b.id];

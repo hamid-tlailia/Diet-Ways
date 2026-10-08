@@ -8,6 +8,7 @@ import { PROTOCOLS, STAGES, stageAt, nextStage } from '../data/fasting';
 import StageIcon from '../components/StageIcon';
 import { Sheet, Reveal, Confirm } from '../components/ui';
 import { fmtDuration } from './Home';
+import { DatedHistory } from '../components/Accordion';
 
 const R = 132;
 const C = 2 * Math.PI * R;
@@ -109,7 +110,7 @@ function Ring({ hours, goal, running, onStage }) {
   );
 }
 
-export default function Fasting({ go }) {
+export default function Fasting() {
   const { t, lang } = useT();
   const { protocolId, fastStart, fastGoal, history, setProtocol, startFast, endFast, track } = useStore();
   const now = useNow(1000);
@@ -232,10 +233,8 @@ export default function Fasting({ go }) {
         </AnimatePresence>
       </Reveal>
 
-      {/* Full fasting history lives in the Coach's records. */}
-      <button className="btn ghost" onClick={() => go?.('coach')}>
-        📜 {t('fastHistoryInCoach')}
-      </button>
+      <h3 className="section-title">{t('history')}</h3>
+      <FastHistory />
 
       <Confirm
         open={confirmEnd}
@@ -269,15 +268,14 @@ export default function Fasting({ go }) {
   );
 }
 
-// Fasting history, newest first — shown in the Coach's records.
-export function FastHistory() {
+// Fasting history: the latest fast (or today's) shown, earlier ones in an accordion with a day picker.
+function FastHistory() {
   const { t, lang } = useT();
   const history = useStore((s) => s.history);
   const fmtDate = (ms) => new Date(ms).toLocaleString(lang === 'ar' ? 'ar' : 'en', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  if (!history.length) return <p className="muted center">{t('noHistory')}</p>;
-  return (
-    <div className="history">
-      {history.map((h) => {
+  const rows = (list) => (
+    <div className="card history">
+      {list.map((h) => {
         const hrs = (h.end - h.start) / 3.6e6;
         const ok = hrs >= h.goal * 0.95;
         return (
@@ -295,4 +293,5 @@ export function FastHistory() {
       })}
     </div>
   );
+  return <DatedHistory items={history} at={(h) => h.start} render={rows} pastTitle={`⏳ ${t('pastFasts')}`} empty={t('noHistory')} />;
 }
